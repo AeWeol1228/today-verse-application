@@ -1,0 +1,3 @@
+*.dart linguist-language=Dart
+*.dart linguist-detectable=true
+*.dart linguist-documentation=false
