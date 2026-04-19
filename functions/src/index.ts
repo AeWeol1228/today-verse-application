@@ -42,7 +42,7 @@ function buildPrompt(book: string): string {
 
 export const generateDailyVerse = onSchedule(
   {
-    schedule: "0 0 * * *",
+    schedule: "0 11 * * *",
     timeZone: "Asia/Seoul",
     secrets: ["GEMINI_API_KEY"],
   },
