@@ -26,7 +26,8 @@ const BIBLE_BOOKS = [
 
 function buildPrompt(book: string): string {
   return `
-"${book}"에서 구절 1개를 가져와. (개역개정판 기준)
+"${book}"에서 연속된 2절을 가져와. (개역개정판 기준)
+시작 절과 바로 다음 절(시작절+1)을 선택해.
 해당 성경이 어떤 책인지, 1. 쓰인 목적, 2. 저자의 상황, 3. 핵심 메시지 중 1~3개를 골라 한 글로 3~4문장으로 작성해. 줄바꿈을 활용해서 최대한 가독성을 좋게 해줘.
 반드시 아래 JSON 형식으로만 응답해. 다른 텍스트는 포함하지 마.
 
@@ -34,7 +35,8 @@ function buildPrompt(book: string): string {
   "book": "${book}",
   "chapter": 5,
   "verse": 14,
-  "verse_text": "구절 원문",
+  "verse_end": 15,
+  "verse_text": "14절 원문\n15절 원문",
   "book_description": "설명..."
 }
 `.trim();

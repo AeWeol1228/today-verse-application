@@ -5,6 +5,7 @@ class VerseModel extends Verse {
     required super.book,
     required super.chapter,
     required super.verse,
+    required super.verseEnd,
     required super.verseText,
     required super.bookDescription,
   });
@@ -14,6 +15,7 @@ class VerseModel extends Verse {
       book: data['book'] as String,
       chapter: data['chapter'] as int,
       verse: data['verse'] as int,
+      verseEnd: data['verse_end'] as int,
       verseText: data['verse_text'] as String,
       bookDescription: data['book_description'] as String,
     );
@@ -24,6 +26,7 @@ class VerseModel extends Verse {
       'book': book,
       'chapter': chapter,
       'verse': verse,
+      'verse_end': verseEnd,
       'verse_text': verseText,
       'book_description': bookDescription,
     };
