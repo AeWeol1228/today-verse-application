@@ -5,14 +5,23 @@ class VerseRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<VerseModel?> getTodayVerse() async {
-    final today = _todayKey();
-    final doc = await _firestore.collection('daily_verses').doc(today).get();
-    if (!doc.exists || doc.data() == null) return null;
-    return VerseModel.fromFirestore(doc.data()!);
+    final todayDoc = await _firestore
+        .collection('daily_verses')
+        .doc(_dateKey(DateTime.now()))
+        .get();
+    if (todayDoc.exists && todayDoc.data() != null) {
+      return VerseModel.fromFirestore(todayDoc.data()!);
+    }
+
+    final yesterdayDoc = await _firestore
+        .collection('daily_verses')
+        .doc(_dateKey(DateTime.now().subtract(const Duration(days: 1))))
+        .get();
+    if (!yesterdayDoc.exists || yesterdayDoc.data() == null) return null;
+    return VerseModel.fromFirestore(yesterdayDoc.data()!);
   }
 
-  String _todayKey() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  String _dateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

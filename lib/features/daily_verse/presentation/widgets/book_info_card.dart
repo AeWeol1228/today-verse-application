@@ -10,7 +10,7 @@ class BookInfoCard extends StatefulWidget {
 }
 
 class _BookInfoCardState extends State<BookInfoCard> {
-  bool _expanded = false;
+  bool _expanded = true;
 
   @override
   Widget build(BuildContext context) {
