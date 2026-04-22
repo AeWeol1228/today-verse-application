@@ -2,10 +2,13 @@ import { setGlobalOptions } from "firebase-functions";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
-setGlobalOptions({ region: "asia-northeast3" }); // 서울 리전
+setGlobalOptions({ region: "asia-northeast3" });
 
 admin.initializeApp();
+
+const ttsClient = new TextToSpeechClient();
 
 const BIBLE_BOOKS = [
   "창세기", "출애굽기", "레위기", "민수기", "신명기",
@@ -42,6 +45,29 @@ function buildPrompt(book: string): string {
 `.trim();
 }
 
+async function generateAudio(verseText: string, today: string): Promise<string | undefined> {
+  try {
+    const [ttsResponse] = await ttsClient.synthesizeSpeech({
+      input: { text: verseText },
+      voice: { languageCode: "ko-KR", name: "ko-KR-Neural2-B" },
+      audioConfig: { audioEncoding: "MP3" },
+    });
+
+    const audioContent = ttsResponse.audioContent as Buffer;
+    const bucket = admin.storage().bucket();
+    const audioFile = bucket.file(`daily_voice/${today}_${Date.now()}.mp3`);
+    await audioFile.save(audioContent, {
+      contentType: "audio/mpeg",
+      metadata: { cacheControl: "no-cache, no-store" },
+    });
+    await audioFile.makePublic();
+    return audioFile.publicUrl();
+  } catch (e) {
+    console.error("TTS generation failed:", e);
+    return undefined;
+  }
+}
+
 export const generateDailyVerse = onSchedule(
   {
     schedule: "0 10 * * *",
@@ -63,8 +89,11 @@ export const generateDailyVerse = onSchedule(
     const data = JSON.parse(jsonText);
 
     const today = todayKey();
+    const audioUrl = await generateAudio(data.book_description, today);
+
     await admin.firestore().collection("daily_verses").doc(today).set({
       ...data,
+      ...(audioUrl ? { audio_url: audioUrl } : {}),
       generated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 

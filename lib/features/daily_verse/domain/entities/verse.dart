@@ -5,6 +5,7 @@ class Verse {
   final int verseEnd;
   final String verseText;
   final String bookDescription;
+  final String? audioUrl;
 
   const Verse({
     required this.book,
@@ -13,6 +14,7 @@ class Verse {
     required this.verseEnd,
     required this.verseText,
     required this.bookDescription,
+    this.audioUrl,
   });
 
   String get reference => '$book $chapter:$verse-$verseEnd';

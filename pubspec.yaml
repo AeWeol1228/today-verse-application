@@ -45,6 +45,14 @@ dependencies:
   # Gemini API
   google_generative_ai: ^0.4.6
 
+  # Audio
+  just_audio: ^0.9.40
+  path_provider: ^2.1.4
+  http: ^1.2.1
+
+  # Settings
+  shared_preferences: ^2.3.3
+
   # Fonts
   google_fonts: ^6.2.1
 

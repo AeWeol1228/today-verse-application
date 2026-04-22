@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class BookInfoCard extends StatefulWidget {
   final String description;
+  final void Function(bool isExpanded)? onToggle;
 
-  const BookInfoCard({super.key, required this.description});
+  const BookInfoCard({super.key, required this.description, this.onToggle});
 
   @override
   State<BookInfoCard> createState() => _BookInfoCardState();
@@ -18,7 +19,10 @@ class _BookInfoCardState extends State<BookInfoCard> {
     final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: () => setState(() => _expanded = !_expanded),
+      onTap: () {
+        setState(() => _expanded = !_expanded);
+        widget.onToggle?.call(_expanded);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,

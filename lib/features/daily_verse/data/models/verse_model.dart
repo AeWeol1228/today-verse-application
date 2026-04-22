@@ -8,6 +8,7 @@ class VerseModel extends Verse {
     required super.verseEnd,
     required super.verseText,
     required super.bookDescription,
+    super.audioUrl,
   });
 
   factory VerseModel.fromFirestore(Map<String, dynamic> data) {
@@ -18,6 +19,7 @@ class VerseModel extends Verse {
       verseEnd: data['verse_end'] as int,
       verseText: data['verse_text'] as String,
       bookDescription: data['book_description'] as String,
+      audioUrl: data['audio_url'] as String?,
     );
   }
 

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/verse_provider.dart';
+import '../providers/verse_audio_provider.dart';
+import '../../../../features/settings/presentation/providers/settings_provider.dart';
+import '../../../../features/settings/presentation/screens/settings_screen.dart';
 import '../widgets/verse_card.dart';
 import '../widgets/book_info_card.dart';
 
@@ -16,6 +19,7 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
+  bool _autoPlayTriggered = false;
 
   @override
   void initState() {
@@ -37,9 +41,18 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     super.dispose();
   }
 
+  void _schedulePlay(String audioUrl) {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        ref.read(verseAudioProvider.notifier).playOnce(audioUrl);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final verseAsync = ref.watch(todayVerseProvider);
+    final isTtsEnabled = ref.watch(settingsProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -63,6 +76,11 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
 
             _controller.forward();
 
+            if (isTtsEnabled && verse.audioUrl != null && !_autoPlayTriggered) {
+              _autoPlayTriggered = true;
+              _schedulePlay(verse.audioUrl!);
+            }
+
             return FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
@@ -75,14 +93,45 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _formattedDate().toUpperCase(),
-                        style: theme.textTheme.bodySmall,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            _formattedDate().toUpperCase(),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SettingsScreen(),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.settings_outlined,
+                              size: 18,
+                              color: theme.textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        ],
                       ),
-                      const Spacer(flex: 2),
+                      const Spacer(flex: 1),
                       VerseCard(verse: verse),
                       const Spacer(flex: 3),
-                      BookInfoCard(description: verse.bookDescription),
+                      BookInfoCard(
+                        description: verse.bookDescription,
+                        onToggle: isTtsEnabled && verse.audioUrl != null
+                            ? (isExpanded) {
+                                if (isExpanded) {
+                                  _schedulePlay(verse.audioUrl!);
+                                } else {
+                                  ref
+                                      .read(verseAudioProvider.notifier)
+                                      .stop();
+                                }
+                              }
+                            : null,
+                      ),
                       const SizedBox(height: 32),
                     ],
                   ),
