@@ -44,7 +44,9 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
   void _schedulePlay(String audioUrl) {
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
-        ref.read(verseAudioProvider.notifier).playOnce(audioUrl);
+        ref.read(verseAudioProvider.notifier)
+          ..setVolume(ref.read(ttsVolumeProvider))
+          ..playOnce(audioUrl);
       }
     });
   }
@@ -54,6 +56,14 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     final verseAsync = ref.watch(todayVerseProvider);
     final isTtsEnabled = ref.watch(settingsProvider);
     final theme = Theme.of(context);
+
+    ref.listen<bool>(settingsProvider, (_, next) {
+      if (!next) ref.read(verseAudioProvider.notifier).stop();
+    });
+
+    ref.listen<double>(ttsVolumeProvider, (_, next) {
+      ref.read(verseAudioProvider.notifier).setVolume(next);
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -81,58 +91,87 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
               _schedulePlay(verse.audioUrl!);
             }
 
+            final audioState = ref.watch(verseAudioProvider);
+
+            final size = MediaQuery.of(context).size;
+            final safePaddingTop = MediaQuery.of(context).padding.top;
+            final safePaddingBottom = MediaQuery.of(context).padding.bottom;
+            // 상단 섹션(헤더+구절)이 화면 50% 지점에서 끝나도록 계산
+            final topSectionHeight = (size.height * 0.5 - safePaddingTop - 48.0).clamp(180.0, double.infinity);
+            // 하단(BookInfoCard) 가용 공간에서 오버헤드를 빼 콘텐츠 최대 높이 산정
+            final maxBookContentHeight = (size.height * 0.5 - safePaddingBottom - 124.0).clamp(100.0, 300.0);
+
             return FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
                 position: _slideAnim,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 48,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(32, 48, 32, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            _formattedDate().toUpperCase(),
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SettingsScreen(),
-                              ),
+                      SizedBox(
+                        height: topSectionHeight,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _formattedDate().toUpperCase(),
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: isTtsEnabled && verse.audioUrl != null
+                                          ? () => ref
+                                              .read(verseAudioProvider.notifier)
+                                              .toggle(verse.audioUrl!)
+                                          : null,
+                                      child: Icon(
+                                        audioState.isPlaying || audioState.isLoading
+                                            ? Icons.pause
+                                            : Icons.play_arrow,
+                                        size: 20,
+                                        color: isTtsEnabled
+                                            ? theme.textTheme.bodySmall?.color
+                                            : theme.textTheme.bodySmall?.color
+                                                ?.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    GestureDetector(
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const SettingsScreen(),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.settings_outlined,
+                                        size: 18,
+                                        color: theme.textTheme.bodySmall?.color,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              Icons.settings_outlined,
-                              size: 18,
-                              color: theme.textTheme.bodySmall?.color,
+                            const SizedBox(height: 20),
+                            Expanded(
+                              child: VerseCard(verse: verse),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const Spacer(flex: 1),
-                      VerseCard(verse: verse),
-                      const Spacer(flex: 3),
+                      const SizedBox(height: 24),
                       BookInfoCard(
                         description: verse.bookDescription,
-                        onToggle: isTtsEnabled && verse.audioUrl != null
-                            ? (isExpanded) {
-                                if (isExpanded) {
-                                  _schedulePlay(verse.audioUrl!);
-                                } else {
-                                  ref
-                                      .read(verseAudioProvider.notifier)
-                                      .stop();
-                                }
-                              }
-                            : null,
+                        maxContentHeight: maxBookContentHeight,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

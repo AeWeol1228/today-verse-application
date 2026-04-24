@@ -8,6 +8,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isTtsEnabled = ref.watch(settingsProvider);
+    final ttsVolume = ref.watch(ttsVolumeProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -44,6 +45,45 @@ class SettingsScreen extends ConsumerWidget {
               activeColor: theme.colorScheme.primary,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('볼륨', style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isTtsEnabled ? null : theme.textTheme.bodyMedium?.color?.withOpacity(0.4),
+                      )),
+                      Text(
+                        '${(ttsVolume * 100).round()}%',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isTtsEnabled
+                              ? theme.colorScheme.primary
+                              : theme.textTheme.bodySmall?.color?.withOpacity(0.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: ttsVolume,
+                    min: 0.0,
+                    max: 1.0,
+                    divisions: 20,
+                    onChanged: isTtsEnabled
+                        ? (v) => ref.read(ttsVolumeProvider.notifier).setVolume(v)
+                        : null,
+                    activeColor: theme.colorScheme.primary,
+                    inactiveColor: theme.colorScheme.primary.withOpacity(0.2),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

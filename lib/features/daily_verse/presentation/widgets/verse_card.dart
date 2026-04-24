@@ -26,8 +26,7 @@ class _VerseCardState extends State<VerseCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: 240,
+        Expanded(
           child: PageView.builder(
             itemCount: verses.length,
             onPageChanged: (i) => setState(() => _currentPage = i),

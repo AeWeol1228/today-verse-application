@@ -18,19 +18,35 @@ class VerseAudioState {
 
 class VerseAudioNotifier extends StateNotifier<VerseAudioState> {
   final AudioPlayer _player = AudioPlayer();
+  double _volume = 1.0;
 
   VerseAudioNotifier() : super(const VerseAudioState()) {
     _player.playerStateStream.listen((ps) {
       if (ps.processingState == ProcessingState.completed) {
         _player.stop();
         state = const VerseAudioState();
+      } else if (ps.playing) {
+        state = const VerseAudioState(isPlaying: true);
       }
     });
+  }
+
+  Future<void> setVolume(double volume) async {
+    _volume = volume;
+    await _player.setVolume(volume);
   }
 
   Future<void> stop() async {
     await _player.stop();
     state = const VerseAudioState();
+  }
+
+  Future<void> toggle(String audioUrl) async {
+    if (state.isPlaying || state.isLoading) {
+      await stop();
+    } else {
+      await playOnce(audioUrl);
+    }
   }
 
   Future<void> playOnce(String audioUrl) async {
@@ -40,9 +56,9 @@ class VerseAudioNotifier extends StateNotifier<VerseAudioState> {
 
     try {
       final path = await _getLocalPath(audioUrl);
+      await _player.setVolume(_volume);
       await _player.setFilePath(path);
-      await _player.play();
-      state = const VerseAudioState(isPlaying: true);
+      await _player.play(); // isPlaying: true는 playerStateStream 리스너에서 세팅
     } catch (_) {
       state = const VerseAudioState(hasError: true);
     }

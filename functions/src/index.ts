@@ -31,6 +31,7 @@ function buildPrompt(book: string): string {
   return `
 "${book}"에서 연속된 2절을 가져와. (개역개정판 기준)
 시작 절과 바로 다음 절(시작절+1)을 선택해.
+verse_text에는 절 번호 없이 본문만 포함해. (예: "1 여호와는..." → "여호와는...")
 해당 성경이 어떤 책인지, 1. 쓰인 목적, 2. 저자의 상황, 3. 핵심 메시지 중 1~3개를 골라 한 글로 3~4문장으로 작성해. 줄바꿈을 활용해서 최대한 가독성을 좋게 해줘.
 반드시 아래 JSON 형식으로만 응답해. 다른 텍스트는 포함하지 마.
 
@@ -39,18 +40,24 @@ function buildPrompt(book: string): string {
   "chapter": 5,
   "verse": 14,
   "verse_end": 15,
-  "verse_text": "14절 원문\n15절 원문",
+  "verse_text": "14절 본문 (절 번호 없이 본문만)\n15절 본문 (절 번호 없이 본문만)",
   "book_description": "설명..."
 }
 `.trim();
 }
 
-async function generateAudio(verseText: string, today: string): Promise<string | undefined> {
+async function generateAudio(verseText: string, bookDescription: string, today: string): Promise<string | undefined> {
   try {
+    const escapeXml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const formattedVerse = escapeXml(verseText).replace(/\n/g, '<break time="700ms"/>');
+    const ssml = `<speak>${formattedVerse}<break time="1500ms"/>${escapeXml(bookDescription)}</speak>`;
+
     const [ttsResponse] = await ttsClient.synthesizeSpeech({
-      input: { text: verseText },
+      input: { ssml },
       voice: { languageCode: "ko-KR", name: "ko-KR-Neural2-B" },
-      audioConfig: { audioEncoding: "MP3" },
+      audioConfig: { audioEncoding: "MP3", volumeGainDb: 6.0 },
     });
 
     const audioContent = ttsResponse.audioContent as Buffer;
@@ -89,7 +96,7 @@ export const generateDailyVerse = onSchedule(
     const data = JSON.parse(jsonText);
 
     const today = todayKey();
-    const audioUrl = await generateAudio(data.book_description, today);
+    const audioUrl = await generateAudio(data.verse_text, data.book_description, today);
 
     await admin.firestore().collection("daily_verses").doc(today).set({
       ...data,

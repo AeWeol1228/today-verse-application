@@ -129,7 +129,8 @@ lib/
 - **애니메이션**: 구절 등장 시 900ms fade + slide
 - **구절 표시**: 좌우 스와이프 PageView, 1절씩 표시, 하단 골드 인디케이터 도트
 - **구절 참조**: `책 장:시작절-끝절` 형식 (예: 로마서 8:28-29), 각 페이지에서 개별 절 번호 표시
-- **책 설명 카드**: 탭하면 펼쳐지는 accordion 방식
+- **레이아웃**: 구절 영역(헤더 포함)은 화면 높이 50%로 고정 → '이 책에 대하여' 카드가 항상 화면 중간부터 시작 (기기 독립적). PageView 높이는 Expanded로 동적 계산. 구절 카드 상단 20px 여백
+- **책 설명 카드**: 탭하면 펼쳐지는 accordion 방식. 콘텐츠 최대 높이는 화면 하단 절반 기반으로 동적 계산 (오버플로 방지)
 - **다크모드**: 시스템 설정 자동 연동
 
 ---
@@ -165,4 +166,6 @@ lib/
 - TTS 음성 파일명에 타임스탬프 포함 (`{date}_{timestamp}.mp3`) → CDN 캐시 우회
 - 앱 TTS 캐시 키: `Uri.decodeFull(audioUrl).split('/').last` (URL 기반)
 - Chirp3-HD / Gemini TTS는 무료 한도 없어 제외, Neural2-B 선택
-- TTS 수동 재생 버튼 없음 — 자동 재생 전용 (설정에서 ON/OFF)
+- TTS 수동 재생 버튼 없음 — 자동 재생 전용 (설정에서 ON/OFF + 볼륨 슬라이더, SharedPreferences key: `tts_volume`)
+- Cloud Function TTS `volumeGainDb: 6.0` — 기본 출력보다 약 2배 큰 음량으로 생성
+- FCM 백그라운드 핸들러에 `@pragma('vm:entry-point')` 필수 — 릴리즈 빌드 R8 난독화로 함수명 소실 방지
