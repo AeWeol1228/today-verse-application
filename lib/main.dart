@@ -28,7 +28,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '오늘의 구절',
+      title: '오늘 한 절',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       home: const DailyVerseScreen(),
