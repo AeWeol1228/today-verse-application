@@ -81,7 +81,7 @@ async function generateAudio(verseTts: string, bookDescription: string, today: s
     const [ttsResponse] = await ttsClient.synthesizeSpeech({
       input: { ssml },
       voice: { languageCode: "ko-KR", name: "ko-KR-Neural2-B" },
-      audioConfig: { audioEncoding: "MP3", volumeGainDb: 6.0 },
+      audioConfig: { audioEncoding: "MP3", volumeGainDb: 9.5 },
     });
 
     const audioContent = ttsResponse.audioContent as Buffer;

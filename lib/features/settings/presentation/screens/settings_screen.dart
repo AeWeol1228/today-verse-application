@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/settings_provider.dart';
 
+const _themeModeLabels = {
+  ThemeMode.system: '시스템',
+  ThemeMode.light: '라이트',
+  ThemeMode.dark: '다크',
+};
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -10,6 +16,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isTtsEnabled = ref.watch(settingsProvider);
     final ttsVolume = ref.watch(ttsVolumeProvider);
+    final themeMode = ref.watch(themeModeProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -49,6 +56,22 @@ class SettingsScreen extends ConsumerWidget {
                     activeColor: theme.colorScheme.primary,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _SectionLabel(label: '화면', theme: theme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  isDark: isDark,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('테마', style: theme.textTheme.bodyMedium),
+                        _ThemeSelector(current: themeMode, isDark: isDark),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -158,6 +181,40 @@ class _SettingsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: child,
+    );
+  }
+}
+
+class _ThemeSelector extends ConsumerWidget {
+  final ThemeMode current;
+  final bool isDark;
+
+  const _ThemeSelector({required this.current, required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Row(
+      children: _themeModeLabels.entries.map((e) {
+        final selected = current == e.key;
+        return GestureDetector(
+          onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(e.key),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: theme.textTheme.bodySmall!.copyWith(
+                color: selected ? primary : (isDark ? const Color(0xFF666666) : const Color(0xFFBBBBBB)),
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                fontSize: 13,
+              ),
+              child: Text(e.value),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
