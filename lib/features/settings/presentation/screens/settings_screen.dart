@@ -18,7 +18,6 @@ class SettingsScreen extends ConsumerWidget {
     final ttsVolume = ref.watch(ttsVolumeProvider);
     final themeMode = ref.watch(themeModeProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -43,7 +42,6 @@ class SettingsScreen extends ConsumerWidget {
                 _SectionLabel(label: '음성', theme: theme),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  isDark: isDark,
                   child: SwitchListTile(
                     title: Text('이 책에 대하여 읽어주기', style: theme.textTheme.bodyMedium),
                     subtitle: Text(
@@ -62,21 +60,19 @@ class SettingsScreen extends ConsumerWidget {
                 _SectionLabel(label: '화면', theme: theme),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  isDark: isDark,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('테마', style: theme.textTheme.bodyMedium),
-                        _ThemeSelector(current: themeMode, isDark: isDark),
+                        _ThemeSelector(current: themeMode),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  isDark: isDark,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                     child: Column(
@@ -124,7 +120,6 @@ class SettingsScreen extends ConsumerWidget {
                 _SectionLabel(label: '개발자', theme: theme),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  isDark: isDark,
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     leading: Icon(Icons.coffee_rounded, color: theme.colorScheme.primary),
@@ -167,15 +162,21 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _SettingsCard extends StatelessWidget {
-  final bool isDark;
+class _SettingsCard extends ConsumerWidget {
   final Widget child;
 
-  const _SettingsCard({required this.isDark, required this.child});
+  const _SettingsCard({required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final brightness = MediaQuery.platformBrightnessOf(context);
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system && brightness == Brightness.dark);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0EAE0),
         borderRadius: BorderRadius.circular(16),
@@ -187,14 +188,17 @@ class _SettingsCard extends StatelessWidget {
 
 class _ThemeSelector extends ConsumerWidget {
   final ThemeMode current;
-  final bool isDark;
 
-  const _ThemeSelector({required this.current, required this.isDark});
+  const _ThemeSelector({required this.current});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final brightness = MediaQuery.platformBrightnessOf(context);
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system && brightness == Brightness.dark);
 
     return Row(
       children: _themeModeLabels.entries.map((e) {
