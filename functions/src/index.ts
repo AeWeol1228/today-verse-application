@@ -2,7 +2,7 @@ import { setGlobalOptions } from "firebase-functions";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import * as admin from "firebase-admin";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 import { GoogleAuth } from "google-auth-library";
 
@@ -67,13 +67,6 @@ function buildGeminiPrompt(book: string, chapter: number, verse: number, verseEn
 두 가지를 작성해줘:
 1. verse_text_tts: 위 구절을 TTS로 자연스럽게 읽도록 쉼표, 마침표, 줄바꿈 등을 적절히 추가해. 단어와 내용은 절대 변경하지 마.
 2. book_description: ${book}에 대한 설명을 1. 쓰인 목적, 2. 저자의 상황, 3. 핵심 메시지 중 1~3개를 골라 한 글로 3~4문장으로 작성해. 줄바꿈을 활용해서 가독성을 좋게 해줘.
-
-반드시 아래 JSON 형식으로만 응답해. 다른 텍스트는 포함하지 마.
-
-{
-  "verse_text_tts": "TTS용 구두점 추가본",
-  "book_description": "설명..."
-}
 `.trim();
 }
 
@@ -136,11 +129,22 @@ export const generateDailyVerse = onSchedule(
 
     // 4. Gemini: TTS용 구두점 추가 + 책 설명 생성
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-3-flash-preview",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            verse_text_tts: { type: SchemaType.STRING },
+            book_description: { type: SchemaType.STRING },
+          },
+          required: ["verse_text_tts", "book_description"],
+        },
+      },
+    });
     const result = await model.generateContent(buildGeminiPrompt(book, chapter, verse, verseEnd, verseText));
-    const rawText = result.response.text().trim();
-    const jsonText = rawText.replace(/^```json\n?/, "").replace(/\n?```$/, "");
-    const geminiData = JSON.parse(jsonText);
+    const geminiData = JSON.parse(result.response.text());
 
     // 5. TTS 생성 (verse_text_tts 사용)
     const today = todayKey();
