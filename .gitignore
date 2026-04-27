@@ -47,6 +47,10 @@ app.*.map.json
 # Environment variables (API keys - never commit)
 **/.env
 
+# Android signing (never commit)
+android/key.properties
+android/app/*.jks
+
 # Firebase config files (contain API keys)
 google-services.json
 GoogleService-Info.plist
