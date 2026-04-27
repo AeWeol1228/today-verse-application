@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -83,6 +84,26 @@ class SettingsScreen extends ConsumerWidget {
                     inactiveColor: theme.colorScheme.primary.withOpacity(0.2),
                   ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          _SectionLabel(label: '개발자', theme: theme),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            isDark: isDark,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Icon(Icons.coffee_rounded, color: theme.colorScheme.primary),
+              title: Text('개발자에게 커피 한 잔', style: theme.textTheme.bodyMedium),
+              subtitle: Text(
+                '앱이 마음에 드셨다면 응원해 주세요',
+                style: theme.textTheme.bodySmall,
+              ),
+              trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: theme.colorScheme.primary),
+              onTap: () => launchUrl(
+                Uri.parse('https://qr.kakaopay.com/FXAHety7o'),
+                mode: LaunchMode.externalApplication,
               ),
             ),
           ),
