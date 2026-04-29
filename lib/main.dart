@@ -16,10 +16,6 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  final messaging = FirebaseMessaging.instance;
-  await messaging.requestPermission();
-  await messaging.subscribeToTopic('daily_verse');
-
   runApp(const ProviderScope(child: App()));
 }
 

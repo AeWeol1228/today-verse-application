@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/verse_provider.dart';
 import '../providers/verse_audio_provider.dart';
 import '../../../../features/settings/presentation/providers/settings_provider.dart';
@@ -20,6 +22,7 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
   bool _autoPlayTriggered = false;
+  bool _notificationCheckDone = false;
 
   @override
   void initState() {
@@ -39,6 +42,39 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _maybeRequestNotificationPermission() async {
+    final prefs = await SharedPreferences.getInstance();
+    final asked = prefs.getBool('notification_permission_asked') ?? false;
+    if (asked || !mounted) return;
+    await prefs.setBool('notification_permission_asked', true);
+
+    if (!mounted) return;
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('알림 허용'),
+        content: const Text('매일 오전 10시, 오늘의 성경 구절을\n알림으로 받아보실 수 있습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('나중에', style: TextStyle(color: theme.textTheme.bodySmall?.color)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('허용', style: TextStyle(color: theme.colorScheme.primary)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await FirebaseMessaging.instance.requestPermission();
+      await FirebaseMessaging.instance.subscribeToTopic('daily_verse');
+    }
   }
 
   void _schedulePlay(String audioUrl) {
@@ -85,6 +121,14 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
             }
 
             _controller.forward();
+
+            if (!_notificationCheckDone) {
+              _notificationCheckDone = true;
+              Future.delayed(
+                const Duration(milliseconds: 2000),
+                _maybeRequestNotificationPermission,
+              );
+            }
 
             if (isTtsEnabled && verse.audioUrl != null && !_autoPlayTriggered) {
               _autoPlayTriggered = true;
