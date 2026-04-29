@@ -1,4 +1,4 @@
-package com.todayverse.today_verse
+package com.hanjul.app
 
 import io.flutter.embedding.android.FlutterActivity
 
