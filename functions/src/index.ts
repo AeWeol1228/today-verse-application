@@ -47,6 +47,29 @@ const CHAPTER_COUNTS = [
   5, 1, 1, 1, 22,      // 요한일서-요한계시록
 ];
 
+// 통째로 제외할 장 목록 (족보, 제사 규례, 인구조사, 목록 등)
+const EXCLUDED_CHAPTERS: Record<string, number[]> = {
+  "창세기":    [5, 10, 36],
+  "출애굽기":  [25, 26, 27, 28, 29, 30, 31, 36, 37, 38, 39],
+  "레위기":    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+  "민수기":    [1, 2, 3, 4, 7, 26, 33],
+  "에스라":    [2],
+  "느헤미야":  [7, 10, 11],
+  "역대상":    [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "에스겔":    [40, 41, 42, 44, 45, 46, 48],
+  "요한계시록": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+};
+
+// 일부 절만 제외할 혼합 장 (제외 범위: [시작절, 끝절] 포함)
+const EXCLUDED_VERSE_RANGES: Record<string, Record<number, [number, number]>> = {
+  "창세기":   { 11: [10, 32] },           // 1-9 바벨탑, 10-32 셈의 족보
+  "출애굽기": { 35: [4, 35], 40: [1, 33] }, // 35장: 1-3 안식일 명령만 유지 / 40장: 34-38 영광만 유지
+  "마태복음": { 1: [1, 17] },             // 18-25 예수 탄생만 유지
+  "누가복음": { 3: [23, 38] },            // 1-22 세례 요한·예수 세례만 유지
+  "느헤미야": { 12: [1, 26] },            // 27-47 성벽 봉헌 서사만 유지
+  "에스겔":   { 43: [13, 27], 47: [13, 23] }, // 43장: 1-12 영광 귀환만 유지 / 47장: 1-12 생명의 강만 유지
+};
+
 interface BollsVerse {
   pk: number;
   verse: number;
@@ -57,6 +80,38 @@ async function fetchChapterVerses(bookNumber: number, chapter: number): Promise<
   const response = await fetch(`https://bolls.life/get-text/KRV/${bookNumber}/${chapter}/`);
   if (!response.ok) throw new Error(`bolls.life error: ${response.status}`);
   return response.json();
+}
+
+function getAvailableChapters(bookIndex: number): number[] {
+  const book = BIBLE_BOOKS[bookIndex];
+  const excluded = new Set(EXCLUDED_CHAPTERS[book] ?? []);
+  const available: number[] = [];
+  for (let c = 1; c <= CHAPTER_COUNTS[bookIndex]; c++) {
+    if (!excluded.has(c)) available.push(c);
+  }
+  return available;
+}
+
+function filterExcludedVerses(book: string, chapter: number, verses: BollsVerse[]): BollsVerse[] {
+  const range = EXCLUDED_VERSE_RANGES[book]?.[chapter];
+  if (!range) return verses;
+  const [start, end] = range;
+  return verses.filter((v) => v.verse < start || v.verse > end);
+}
+
+async function selectVerses(): Promise<{ book: string; chapter: number; verses: BollsVerse[] }> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const bookIndex = Math.floor(Math.random() * BIBLE_BOOKS.length);
+    const availableChapters = getAvailableChapters(bookIndex);
+    if (availableChapters.length === 0) continue;
+
+    const chapter = availableChapters[Math.floor(Math.random() * availableChapters.length)];
+    const allVerses = await fetchChapterVerses(bookIndex + 1, chapter);
+    const verses = filterExcludedVerses(BIBLE_BOOKS[bookIndex], chapter, allVerses);
+
+    if (verses.length >= 2) return { book: BIBLE_BOOKS[bookIndex], chapter, verses };
+  }
+  throw new Error("유효한 구절 선택 실패 (10회 시도)");
 }
 
 function buildGeminiPrompt(book: string, chapter: number, verse: number, verseEnd: number, verseText: string): string {
@@ -109,17 +164,8 @@ export const generateDailyVerse = onSchedule(
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
-    // 1. 랜덤 책/장 선택
-    const bookIndex = Math.floor(Math.random() * BIBLE_BOOKS.length);
-    const book = BIBLE_BOOKS[bookIndex];
-    const chapterCount = CHAPTER_COUNTS[bookIndex];
-    const chapter = Math.floor(Math.random() * chapterCount) + 1;
-
-    // 2. bolls.life에서 해당 장 전체 절 가져오기
-    const verses = await fetchChapterVerses(bookIndex + 1, chapter);
-    if (verses.length < 2) throw new Error(`Not enough verses: ${book} ${chapter}장`);
-
-    // 3. 랜덤 연속 2절 선택
+    // 1-3. 제외 목록 적용 후 랜덤 책/장/절 선택
+    const { book, chapter, verses } = await selectVerses();
     const startIdx = Math.floor(Math.random() * (verses.length - 1));
     const v1 = verses[startIdx];
     const v2 = verses[startIdx + 1];
