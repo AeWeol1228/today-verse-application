@@ -203,7 +203,7 @@ export const generateDailyVerse = onSchedule(
       verse,
       verse_end: verseEnd,
       verse_text: verseText,
-      book_description: geminiData.book_description,
+      book_description: geminiData.book_description.replace(/\\n/g, '\n'),
       ...(audioUrl ? { audio_url: audioUrl } : {}),
       generated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
