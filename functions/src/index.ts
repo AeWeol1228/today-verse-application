@@ -3,14 +3,13 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import * as admin from "firebase-admin";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
-import { TextToSpeechClient } from "@google-cloud/text-to-speech";
+import { GoogleGenAI } from "@google/genai";
 import { GoogleAuth } from "google-auth-library";
 
 setGlobalOptions({ region: "asia-northeast3" });
 
 admin.initializeApp();
 
-const ttsClient = new TextToSpeechClient();
 
 const BIBLE_BOOKS = [
   "창세기", "출애굽기", "레위기", "민수기", "신명기",
@@ -125,25 +124,52 @@ function buildGeminiPrompt(book: string, chapter: number, verse: number, verseEn
 `.trim();
 }
 
-async function generateAudio(verseTts: string, bookDescription: string, today: string): Promise<string | undefined> {
+function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16): Buffer {
+  const byteRate = sampleRate * channels * (bitDepth / 8);
+  const blockAlign = channels * (bitDepth / 8);
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitDepth, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+async function generateAudio(apiKey: string, verseTts: string, bookDescription: string, today: string): Promise<string | undefined> {
   try {
-    const escapeXml = (s: string) =>
-      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const ai = new GoogleGenAI({ apiKey });
+    const text = `자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요.\n\n${verseTts}\n\n${bookDescription}`;
 
-    const formattedVerse = escapeXml(verseTts).replace(/\n/g, '<break time="700ms"/>');
-    const ssml = `<speak>${formattedVerse}<break time="1500ms"/>${escapeXml(bookDescription)}</speak>`;
-
-    const [ttsResponse] = await ttsClient.synthesizeSpeech({
-      input: { ssml },
-      voice: { languageCode: "ko-KR", name: "ko-KR-Neural2-B" },
-      audioConfig: { audioEncoding: "MP3", volumeGainDb: 9.5 },
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-tts-preview",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: "Zephyr" },
+          },
+        },
+      },
     });
 
-    const audioContent = ttsResponse.audioContent as Buffer;
+    const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!audioData) throw new Error("No audio data in response");
+
+    const wavBuffer = pcmToWav(Buffer.from(audioData, "base64"));
     const bucket = admin.storage().bucket();
-    const audioFile = bucket.file(`daily_voice/${today}_${Date.now()}.mp3`);
-    await audioFile.save(audioContent, {
-      contentType: "audio/mpeg",
+    const audioFile = bucket.file(`daily_voice/${today}_${Date.now()}.wav`);
+    await audioFile.save(wavBuffer, {
+      contentType: "audio/wav",
       metadata: { cacheControl: "no-cache, no-store" },
     });
     await audioFile.makePublic();
@@ -194,7 +220,7 @@ export const generateDailyVerse = onSchedule(
 
     // 5. TTS 생성 (verse_text_tts 사용)
     const today = todayKey();
-    const audioUrl = await generateAudio(geminiData.verse_text_tts, geminiData.book_description, today);
+    const audioUrl = await generateAudio(apiKey, geminiData.verse_text_tts, geminiData.book_description, today);
 
     // 6. Firestore 저장 (verse_text는 bolls.life 원문)
     await admin.firestore().collection("daily_verses").doc(today).set({

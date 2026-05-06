@@ -18,7 +18,7 @@
 | 앱 프레임워크 | Flutter (Dart) |
 | 백엔드 / DB | Firebase (Firestore, Cloud Functions, FCM, Storage) |
 | AI 콘텐츠 생성 | Gemini API (gemini-3-flash-preview) |
-| TTS | Google Cloud Text-to-Speech (ko-KR-Neural2-B) |
+| TTS | Gemini TTS (gemini-3.1-flash-tts-preview, voice: Zephyr) |
 | 상태 관리 | Riverpod |
 | 폰트 | Google Fonts (나눔명조, Noto Sans KR) |
 
@@ -165,7 +165,9 @@ lib/
 - TTS 대상은 verse_text가 아닌 book_description (책 설명 낭독)
 - TTS 음성 파일명에 타임스탬프 포함 (`{date}_{timestamp}.mp3`) → CDN 캐시 우회
 - 앱 TTS 캐시 키: `Uri.decodeFull(audioUrl).split('/').last` (URL 기반)
-- Chirp3-HD / Gemini TTS는 무료 한도 없어 제외, Neural2-B 선택
+- Google Cloud TTS Neural2-B → Gemini TTS (gemini-3.1-flash-tts-preview, Zephyr)로 교체 (2026-05-06). Preview 기간 무료. GA 이후 약 $14/년 예상
+- 오디오 포맷 MP3 → WAV (PCM 24kHz 16-bit mono에 WAV 헤더 직접 생성)
+- TTS 스타일: "자연스럽고 따뜻하게, 일상 대화처럼" — 전통적 성경 낭독 투 지양
 - TTS 수동 재생 버튼 없음 — 자동 재생 전용 (설정에서 ON/OFF + 볼륨 슬라이더, SharedPreferences key: `tts_volume`)
 - Cloud Function TTS `volumeGainDb: 6.0` — 기본 출력보다 약 2배 큰 음량으로 생성
 - FCM 백그라운드 핸들러에 `@pragma('vm:entry-point')` 필수 — 릴리즈 빌드 R8 난독화로 함수명 소실 방지
