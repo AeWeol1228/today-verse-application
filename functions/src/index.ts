@@ -144,19 +144,19 @@ function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16):
   return Buffer.concat([header, pcm]);
 }
 
-async function generateAudio(apiKey: string, verseTts: string, bookDescription: string, today: string): Promise<string | undefined> {
+async function generateSingleAudio(apiKey: string, text: string, filename: string): Promise<string | undefined> {
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const text = `자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요.\n\n${verseTts}\n\n${bookDescription}`;
+    const prompt = `자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요.\n\n${text}`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text }] }],
+      contents: [{ parts: [{ text: prompt }] }],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: "Zephyr" },
+            prebuiltVoiceConfig: { voiceName: "Gacrux" },
           },
         },
       },
@@ -167,7 +167,7 @@ async function generateAudio(apiKey: string, verseTts: string, bookDescription: 
 
     const wavBuffer = pcmToWav(Buffer.from(audioData, "base64"));
     const bucket = admin.storage().bucket();
-    const audioFile = bucket.file(`daily_voice/${today}_${Date.now()}.wav`);
+    const audioFile = bucket.file(`daily_voice/${filename}.wav`);
     await audioFile.save(wavBuffer, {
       contentType: "audio/wav",
       metadata: { cacheControl: "no-cache, no-store" },
@@ -175,9 +175,18 @@ async function generateAudio(apiKey: string, verseTts: string, bookDescription: 
     await audioFile.makePublic();
     return audioFile.publicUrl();
   } catch (e) {
-    console.error("TTS generation failed:", e);
+    console.error(`TTS generation failed (${filename}):`, e);
     return undefined;
   }
+}
+
+async function generateAudio(apiKey: string, verseTts: string, bookDescription: string, today: string): Promise<{ audioUrlVerse?: string; audioUrlDescription?: string }> {
+  const ts = Date.now();
+  const [audioUrlVerse, audioUrlDescription] = await Promise.all([
+    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`),
+    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`),
+  ]);
+  return { audioUrlVerse, audioUrlDescription };
 }
 
 export const generateDailyVerse = onSchedule(
@@ -218,9 +227,11 @@ export const generateDailyVerse = onSchedule(
     const result = await model.generateContent(buildGeminiPrompt(book, chapter, verse, verseEnd, verseText));
     const geminiData = JSON.parse(result.response.text());
 
-    // 5. TTS 생성 (verse_text_tts 사용)
+    // 5. TTS 생성 — 구절/책설명 병렬 2개
     const today = todayKey();
-    const audioUrl = await generateAudio(apiKey, geminiData.verse_text_tts, geminiData.book_description, today);
+    const { audioUrlVerse, audioUrlDescription } = await generateAudio(
+      apiKey, geminiData.verse_text_tts, geminiData.book_description, today
+    );
 
     // 6. Firestore 저장 (verse_text는 bolls.life 원문)
     await admin.firestore().collection("daily_verses").doc(today).set({
@@ -230,7 +241,8 @@ export const generateDailyVerse = onSchedule(
       verse_end: verseEnd,
       verse_text: verseText,
       book_description: geminiData.book_description.replace(/\\n/g, '\n'),
-      ...(audioUrl ? { audio_url: audioUrl } : {}),
+      ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
+      ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
       generated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 

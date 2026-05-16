@@ -8,7 +8,8 @@ class VerseModel extends Verse {
     required super.verseEnd,
     required super.verseText,
     required super.bookDescription,
-    super.audioUrl,
+    super.audioUrlVerse,
+    super.audioUrlDescription,
     super.dateKey,
   });
 
@@ -20,19 +21,9 @@ class VerseModel extends Verse {
       verseEnd: data['verse_end'] as int,
       verseText: data['verse_text'] as String,
       bookDescription: data['book_description'] as String,
-      audioUrl: data['audio_url'] as String?,
+      audioUrlVerse: data['audio_url_verse'] as String?,
+      audioUrlDescription: data['audio_url_description'] as String?,
       dateKey: dateKey,
     );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'book': book,
-      'chapter': chapter,
-      'verse': verse,
-      'verse_end': verseEnd,
-      'verse_text': verseText,
-      'book_description': bookDescription,
-    };
   }
 }

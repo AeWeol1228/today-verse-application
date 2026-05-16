@@ -63,6 +63,16 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     });
   }
 
+  void _playPageAudio(Verse verse, int page) {
+    final isTtsEnabled = ref.read(settingsProvider);
+    if (!isTtsEnabled) return;
+    final url = page == 0 ? verse.audioUrlDescription : verse.audioUrlVerse;
+    if (url == null) return;
+    ref.read(verseAudioProvider.notifier)
+      ..setVolume(ref.read(ttsVolumeProvider))
+      ..playOnce(url);
+  }
+
   Future<void> _maybeRequestNotificationPermission() async {
     final prefs = await SharedPreferences.getInstance();
     final asked = prefs.getBool('notification_permission_asked') ?? false;
@@ -98,6 +108,9 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
 
   String _topBarTitle(int page) => page == 0 ? '책 설명' : '오늘의 구절';
   String _topBarSubtitle(int page) => page == 0 ? 'Context' : 'Verse';
+
+  String? _currentPageAudioUrl(Verse verse) =>
+      _currentPage == 0 ? verse.audioUrlDescription : verse.audioUrlVerse;
 
   @override
   Widget build(BuildContext context) {
@@ -135,9 +148,9 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
           );
         }
 
-        if (isTtsEnabled && verse.audioUrl != null && !_autoPlayTriggered) {
+        if (isTtsEnabled && verse.audioUrlDescription != null && !_autoPlayTriggered) {
           _autoPlayTriggered = true;
-          _schedulePlay(verse.audioUrl!);
+          _schedulePlay(verse.audioUrlDescription!);
         }
 
         return FadeTransition(
@@ -171,11 +184,14 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
                 trailing: TTSPill(
                   playing: audioState.isPlaying,
                   loading: audioState.isLoading,
-                  enabled: isTtsEnabled && verse.audioUrl != null,
-                  duration: '2:18',
-                  onToggle: verse.audioUrl != null
-                      ? () => ref.read(verseAudioProvider.notifier).toggle(verse.audioUrl!)
-                      : null,
+                  enabled: isTtsEnabled && _currentPageAudioUrl(verse) != null,
+                  duration: '',
+                  onToggle: () {
+                    final url = _currentPageAudioUrl(verse);
+                    if (url != null) {
+                      ref.read(verseAudioProvider.notifier).toggle(url);
+                    }
+                  },
                 ),
               ),
             ),
@@ -186,8 +202,8 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
                 controller: _pageCtrl,
                 onPageChanged: (i) {
                   setState(() => _currentPage = i);
-                  // Stop TTS when moving between pages
                   ref.read(verseAudioProvider.notifier).stop();
+                  _playPageAudio(verse, i);
                 },
                 children: [
                   BookDescriptionPage(

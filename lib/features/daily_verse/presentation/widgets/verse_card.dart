@@ -26,7 +26,7 @@ class VersePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Opening quote mark — 64px Cormorant gold italic
+            // Opening typographic quote — U+201C LEFT DOUBLE QUOTATION MARK
             Text(
               '“',
               style: GoogleFonts.cormorantGaramond(
@@ -38,7 +38,7 @@ class VersePage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Reference pill
+            // Reference
             Text(
               verse.reference,
               style: GoogleFonts.cormorantGaramond(
@@ -49,56 +49,55 @@ class VersePage extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            // Verse lines with number column
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: List.generate(lines.length, (i) {
-                final num = i < verseNumbers.length ? verseNumbers[i] : verse.verseEnd;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Verse number
-                      SizedBox(
-                        width: 20,
-                        child: Text(
-                          '$num',
-                          style: GoogleFonts.cormorantGaramond(
-                            fontSize: 13,
-                            color: context.tvGold.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0,
-                            height: 1.9,
+            // Verse lines with number column — full width, left-aligned
+            SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(lines.length, (i) {
+                  final num = i < verseNumbers.length
+                      ? verseNumbers[i]
+                      : verse.verseEnd;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: Text(
+                            '$num',
+                            style: GoogleFonts.cormorantGaramond(
+                              fontSize: 13,
+                              color: context.tvGold.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w600,
+                              height: 1.9,
+                            ),
+                            textAlign: TextAlign.right,
                           ),
-                          textAlign: TextAlign.right,
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      // Verse text
-                      Expanded(
-                        child: Text(
-                          lines[i],
-                          style: Theme.of(context).textTheme.headlineMedium,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            lines[i],
+                            style: Theme.of(context).textTheme.headlineMedium,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+                      ],
+                    ),
+                  );
+                }),
+              ),
             ),
 
-            // Closing quote mark
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                '”',
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 64,
-                  fontStyle: FontStyle.italic,
-                  color: context.tvGold,
-                  height: 0.8,
-                ),
+            // Closing typographic quote — U+201D RIGHT DOUBLE QUOTATION MARK
+            Text(
+              '”',
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 64,
+                fontStyle: FontStyle.italic,
+                color: context.tvGold,
+                height: 0.8,
               ),
             ),
             const SizedBox(height: 24),
