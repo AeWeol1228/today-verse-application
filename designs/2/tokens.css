@@ -1,0 +1,506 @@
+/* ============================================================
+ * Wanted Design System — Tokens
+ * Source: Wanted Design System v6.0 (CC BY 4.0)
+ * Figma: figma.com/community/file/...wanted-design-system
+ * ============================================================ */
+
+/* --- Webfonts: Pretendard JP (UI default) + Wanted Sans (brand) --- */
+/* Pretendard JP loaded from jsDelivr CDN. Wanted Sans is bundled locally
+   from /fonts/ — uploaded by the user. */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.css");
+
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-Medium.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-SemiBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-ExtraBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Wanted Sans";
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-Black.ttf") format("truetype");
+}
+@font-face {
+  /* ExtraBlack — heavier than Black. Pinned to 950 so it doesn't collide. */
+  font-family: "Wanted Sans";
+  font-weight: 950;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/WantedSans-ExtraBlack.ttf") format("truetype");
+}
+
+:root {
+  /* ─────────────── ATOMIC COLOR PALETTE ─────────────── */
+  /* Naming: color-atomic-{scale}-{value}. Scale = lightness from 99 (lightest) to 0 (darkest).
+     Values here keep the original Wanted token numbers from the Figma file. */
+
+  /* Common */
+  --color-atomic-common-100: #FFFFFF;
+  --color-atomic-common-0: #000000;
+
+  /* Static Neutral (true gray) — atomic-staticNeutral 97→0 */
+  --color-atomic-staticNeutral-97: #F7F7F7;
+  --color-atomic-staticNeutral-86: #DCDCDC;
+  --color-atomic-staticNeutral-77: #C4C4C4;
+  --color-atomic-staticNeutral-69: #B0B0B0;
+  --color-atomic-staticNeutral-61: #9B9B9B;
+  --color-atomic-staticNeutral-54: #8A8A8A;
+  --color-atomic-staticNeutral-45: #737373;
+  --color-atomic-staticNeutral-36: #5C5C5C;
+  --color-atomic-staticNeutral-28: #474747;
+  --color-atomic-staticNeutral-19: #303030;
+  --color-atomic-staticNeutral-16: #2A2A2A;
+  --color-atomic-staticNeutral-11: #1C1C1C;
+  --color-atomic-staticNeutral-9:  #171717;
+  --color-atomic-staticNeutral-6:  #0F0F0F;
+
+  /* Cool Neutral — the "real" UI neutral, slightly cool blue-gray */
+  --color-atomic-coolNeutral-99: #FBFBFC; /* extra-light surface */
+  --color-atomic-coolNeutral-97: #F7F7F8;
+  --color-atomic-coolNeutral-96: #F4F4F5;
+  --color-atomic-coolNeutral-92: #EAEBEC;
+  --color-atomic-coolNeutral-89: #E1E2E4;
+  --color-atomic-coolNeutral-87: #DBDCDF;
+  --color-atomic-coolNeutral-77: #C2C4C8;
+  --color-atomic-coolNeutral-69: #AEB0B6;
+  --color-atomic-coolNeutral-61: #989BA2;
+  --color-atomic-coolNeutral-54: #878A93;
+  --color-atomic-coolNeutral-46: #70737C;
+  --color-atomic-coolNeutral-37: #5A5C63;
+  --color-atomic-coolNeutral-29: #46474C;
+  --color-atomic-coolNeutral-23: #37383C;
+  --color-atomic-coolNeutral-21: #333438;
+  --color-atomic-coolNeutral-19: #2E2F33;
+  --color-atomic-coolNeutral-17: #292A2D;
+  --color-atomic-coolNeutral-13: #212225;
+  --color-atomic-coolNeutral-10: #1B1C1E;
+  --color-atomic-coolNeutral-9:  #171719;
+  --color-atomic-coolNeutral-7:  #141415;
+  --color-atomic-coolNeutral-5:  #0F0F10;
+
+  /* Blue (Wanted primary) — atomic-blue */
+  --color-atomic-blue-99: #F7FBFF;
+  --color-atomic-blue-96: #EAF2FE;
+  --color-atomic-blue-89: #C9DEFE;
+  --color-atomic-blue-80: #9EC5FF;
+  --color-atomic-blue-71: #69A5FF;
+  --color-atomic-blue-65: #4F95FF;
+  --color-atomic-blue-60: #3385FF;
+  --color-atomic-blue-55: #1A75FF;
+  --color-atomic-blue-50: #0066FF; /* primary */
+  --color-atomic-blue-45: #005EEB;
+  --color-atomic-blue-40: #0054D1;
+  --color-atomic-blue-31: #003E9C;
+  --color-atomic-blue-20: #002966;
+  --color-atomic-blue-10: #001536;
+
+  /* Red — atomic-red (alerts, error, urgent) */
+  --color-atomic-red-99: #FFFAFA;
+  --color-atomic-red-95: #FEECEC;
+  --color-atomic-red-90: #FED5D5;
+  --color-atomic-red-83: #FFB5B5;
+  --color-atomic-red-72: #FF8C8C;
+  --color-atomic-red-62: #FF6363;
+  --color-atomic-red-55: #FF4242;
+  --color-atomic-red-50: #E52222;
+  --color-atomic-red-40: #B20C0C;
+  --color-atomic-red-26: #750404;
+  --color-atomic-red-13: #3B0101;
+
+  /* Green — atomic-green (success, positive) */
+  --color-atomic-green-99: #F2FFF6;
+  --color-atomic-green-95: #D9FFE6;
+  --color-atomic-green-87: #ACFCC7;
+  --color-atomic-green-78: #7DF5A5;
+  --color-atomic-green-67: #49E57D;
+  --color-atomic-green-59: #1ED45A;
+  --color-atomic-green-52: #00BF40;
+  --color-atomic-green-43: #009632;
+  --color-atomic-green-32: #006E25;
+  --color-atomic-green-20: #004517;
+  --color-atomic-green-10: #00240C;
+
+  /* Orange */
+  --color-atomic-orange-99: #FFFCF7;
+  --color-atomic-orange-95: #FEF4E6;
+  --color-atomic-orange-90: #FEE6C6;
+  --color-atomic-orange-83: #FFD49C;
+  --color-atomic-orange-75: #FFC06E;
+  --color-atomic-orange-68: #FFA938;
+  --color-atomic-orange-60: #FF9200;
+  --color-atomic-orange-50: #D47800;
+  --color-atomic-orange-49: #D17600;
+  --color-atomic-orange-39: #9C5800;
+  --color-atomic-orange-26: #663A00;
+  --color-atomic-orange-13: #361E00;
+
+  /* Red-Orange */
+  --color-atomic-redOrange-99: #FFFAF7;
+  --color-atomic-redOrange-95: #FEEEE5;
+  --color-atomic-redOrange-90: #FEDBC6;
+  --color-atomic-redOrange-82: #FFC09C;
+  --color-atomic-redOrange-70: #FF9C63;
+  --color-atomic-redOrange-58: #FF7B2E;
+  --color-atomic-redOrange-50: #FF5E00;
+  --color-atomic-redOrange-48: #F55A00;
+  --color-atomic-redOrange-40: #CC4B00;
+  --color-atomic-redOrange-30: #943600;
+  --color-atomic-redOrange-19: #5C2200;
+  --color-atomic-redOrange-9:  #2E1100;
+
+  /* Lime */
+  --color-atomic-lime-99: #F8FFF2;
+  --color-atomic-lime-95: #E6FFD4;
+  --color-atomic-lime-87: #CCFCA9;
+  --color-atomic-lime-78: #AEF779;
+  --color-atomic-lime-66: #88F03E;
+  --color-atomic-lime-55: #6BE016;
+  --color-atomic-lime-48: #58CF04;
+  --color-atomic-lime-40: #48AD00;
+  --color-atomic-lime-37: #429E00;
+  --color-atomic-lime-30: #347D00;
+  --color-atomic-lime-20: #225200;
+  --color-atomic-lime-10: #112900;
+
+  /* Cyan */
+  --color-atomic-cyan-99: #F7FEFF;
+  --color-atomic-cyan-96: #DEFAFF;
+  --color-atomic-cyan-90: #B5F4FF;
+  --color-atomic-cyan-83: #8AEDFF;
+  --color-atomic-cyan-72: #57DFF7;
+  --color-atomic-cyan-60: #28D0ED;
+  --color-atomic-cyan-50: #00BDDE;
+  --color-atomic-cyan-40: #0098B2;
+  --color-atomic-cyan-30: #006F82;
+  --color-atomic-cyan-20: #004854;
+  --color-atomic-cyan-10: #00252B;
+
+  /* Light Blue */
+  --color-atomic-lightBlue-99: #F7FDFF;
+  --color-atomic-lightBlue-96: #E5F6FE;
+  --color-atomic-lightBlue-90: #C4ECFE;
+  --color-atomic-lightBlue-83: #A1E1FF;
+  --color-atomic-lightBlue-72: #70D2FF;
+  --color-atomic-lightBlue-60: #3DC2FF;
+  --color-atomic-lightBlue-50: #00AEFF;
+  --color-atomic-lightBlue-40: #008DCF;
+  --color-atomic-lightBlue-30: #006796;
+  --color-atomic-lightBlue-20: #004261;
+  --color-atomic-lightBlue-10: #002130;
+
+  /* Violet */
+  --color-atomic-violet-99: #FBFAFF;
+  --color-atomic-violet-95: #F0ECFE;
+  --color-atomic-violet-90: #DBD3FE;
+  --color-atomic-violet-83: #C0B0FF;
+  --color-atomic-violet-72: #9E86FC;
+  --color-atomic-violet-58: #7D5EF7;
+  --color-atomic-violet-50: #6541F2;
+  --color-atomic-violet-48: #5B37ED;
+  --color-atomic-violet-45: #4F29E5;
+  --color-atomic-violet-32: #3A16C9;
+  --color-atomic-violet-20: #23098F;
+  --color-atomic-violet-10: #11024D;
+
+  /* Purple */
+  --color-atomic-purple-99: #FEFBFF;
+  --color-atomic-purple-95: #F9EDFF;
+  --color-atomic-purple-90: #F2D6FF;
+  --color-atomic-purple-83: #E9BAFF;
+  --color-atomic-purple-72: #DE96FF;
+  --color-atomic-purple-60: #D478FF;
+  --color-atomic-purple-50: #CB59FF;
+  --color-atomic-purple-40: #AD36E3;
+  --color-atomic-purple-30: #861CB8;
+  --color-atomic-purple-20: #580A7D;
+  --color-atomic-purple-10: #290247;
+
+  /* Pink */
+  --color-atomic-pink-99: #FFFAFE;
+  --color-atomic-pink-95: #FEECFB;
+  --color-atomic-pink-90: #FED3F7;
+  --color-atomic-pink-83: #FFB8F3;
+  --color-atomic-pink-72: #FF94ED;
+  --color-atomic-pink-62: #FA73E3;
+  --color-atomic-pink-52: #F553DA;
+  --color-atomic-pink-46: #E846CD;
+  --color-atomic-pink-40: #D331B8;
+  --color-atomic-pink-30: #A81690;
+  --color-atomic-pink-20: #730560;
+  --color-atomic-pink-10: #3D0133;
+
+  /* Opacity scale used with cool-neutral text+lines */
+  --opacity-05: 0.05;
+  --opacity-08: 0.08;
+  --opacity-12: 0.12;
+  --opacity-16: 0.16;
+  --opacity-22: 0.22;
+  --opacity-28: 0.28;
+  --opacity-35: 0.35;
+  --opacity-43: 0.43;
+  --opacity-52: 0.52;
+  --opacity-61: 0.61;
+  --opacity-74: 0.74;
+  --opacity-88: 0.88;
+  --opacity-97: 0.97;
+
+  /* ─────────────── SEMANTIC COLORS (Light theme) ─────────────── */
+
+  /* Brand / Primary */
+  --color-primary-normal: var(--color-atomic-blue-50);    /* #0066FF — buttons, links */
+  --color-primary-strong: var(--color-atomic-blue-45);    /* #005EEB — pressed */
+  --color-primary-heavy:  var(--color-atomic-blue-40);    /* #0054D1 — heavy emphasis */
+
+  /* Static (theme-independent) */
+  --color-static-white: #FFFFFF;
+  --color-static-black: #000000;
+
+  /* Label — text color, by emphasis */
+  --color-label-normal:    rgba(46, 47, 51, 0.88);        /* primary text   */
+  --color-label-strong:    rgba(23, 23, 25, 1);           /* highest emphasis (titles) */
+  --color-label-neutral:   rgba(46, 47, 51, 0.88);
+  --color-label-alternative: rgba(55, 56, 60, 0.61);      /* secondary text  */
+  --color-label-assistive: rgba(55, 56, 60, 0.28);        /* tertiary, hints */
+  --color-label-disable:   rgba(55, 56, 60, 0.16);        /* disabled        */
+
+  /* Background — surfaces */
+  --color-background-normal:        #FFFFFF;              /* base canvas     */
+  --color-background-alternative:   var(--color-atomic-coolNeutral-99); /* alt panels */
+  --color-background-elevated:      #FFFFFF;              /* cards/modals    */
+  --color-background-elevated-alt:  var(--color-atomic-coolNeutral-99);
+  --color-background-overlay:       rgba(0, 0, 0, 0.08);
+  --color-background-dimmer:        rgba(0, 0, 0, 0.28);  /* modal scrim     */
+
+  /* Line / border */
+  --color-line-normal:        rgba(112, 115, 124, 0.22);  /* default border  */
+  --color-line-neutral:       rgba(112, 115, 124, 0.16);  /* subtle divider  */
+  --color-line-alternative:   rgba(112, 115, 124, 0.08);  /* very subtle     */
+  --color-line-strong:        var(--color-atomic-coolNeutral-96);
+
+  /* Interaction */
+  --color-interaction-inactive: rgba(112, 115, 124, 0.22);
+  --color-interaction-disable:  rgba(112, 115, 124, 0.08);
+
+  /* Status */
+  --color-status-positive: var(--color-atomic-green-43);  /* #009632 */
+  --color-status-cautionary: var(--color-atomic-orange-50); /* #D47800 */
+  --color-status-negative: var(--color-atomic-red-50);    /* #E52222 */
+
+  /* Accent backgrounds — used for tags, chips, callouts */
+  --color-accent-bg-redOrange: var(--color-atomic-redOrange-95);
+  --color-accent-bg-orange:    var(--color-atomic-orange-95);
+  --color-accent-bg-red:       var(--color-atomic-red-95);
+  --color-accent-bg-lime:      var(--color-atomic-lime-95);
+  --color-accent-bg-green:     var(--color-atomic-green-95);
+  --color-accent-bg-cyan:      var(--color-atomic-cyan-96);
+  --color-accent-bg-lightBlue: var(--color-atomic-lightBlue-96);
+  --color-accent-bg-blue:      var(--color-atomic-blue-96);
+  --color-accent-bg-violet:    var(--color-atomic-violet-95);
+  --color-accent-bg-purple:    var(--color-atomic-purple-95);
+  --color-accent-bg-pink:      var(--color-atomic-pink-95);
+
+  /* Inverse — for on-dark surfaces */
+  --color-inverse-primary:   rgba(23, 23, 25, 1);
+  --color-inverse-secondary: rgba(255, 255, 255, 1);
+
+  /* ─────────────── TYPOGRAPHY ─────────────── */
+
+  /* Font families */
+  --font-sans: "Pretendard JP", "Pretendard JP Variable", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
+  --font-brand: "Wanted Sans", "Pretendard JP", -apple-system, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "Menlo", "Consolas", monospace;
+
+  /* Type scale (token = font-size / line-height / letter-spacing) */
+  /* Display */
+  --type-display1-size: 56px;   --type-display1-line: 72px;   --type-display1-tracking: -0.0319em;
+  --type-display2-size: 40px;   --type-display2-line: 52px;   --type-display2-tracking: -0.0282em;
+  --type-display3-size: 36px;   --type-display3-line: 48px;   --type-display3-tracking: -0.027em;
+  /* Title */
+  --type-title1-size:   32px;   --type-title1-line:   44px;   --type-title1-tracking:   -0.0253em;
+  --type-title2-size:   28px;   --type-title2-line:   38px;   --type-title2-tracking:   -0.0236em;
+  --type-title3-size:   24px;   --type-title3-line:   32px;   --type-title3-tracking:   -0.023em;
+  /* Heading */
+  --type-heading1-size: 22px;   --type-heading1-line: 30px;   --type-heading1-tracking: -0.0194em;
+  --type-heading2-size: 20px;   --type-heading2-line: 28px;   --type-heading2-tracking: -0.012em;
+  /* Headline */
+  --type-headline1-size:18px;   --type-headline1-line:26px;   --type-headline1-tracking:-0.002em;
+  --type-headline2-size:17px;   --type-headline2-line:24px;   --type-headline2-tracking:0em;
+  /* Body */
+  --type-body1n-size:   16px;   --type-body1n-line:   24px;   --type-body1n-tracking:   0.0057em; /* normal */
+  --type-body1r-size:   16px;   --type-body1r-line:   26px;   --type-body1r-tracking:   0.0057em; /* reading */
+  --type-body2n-size:   15px;   --type-body2n-line:   22px;   --type-body2n-tracking:   0.0096em;
+  --type-body2r-size:   15px;   --type-body2r-line:   24px;   --type-body2r-tracking:   0.0096em;
+  /* Label */
+  --type-label1n-size:  14px;   --type-label1n-line:  20px;   --type-label1n-tracking:  0.0145em;
+  --type-label1r-size:  14px;   --type-label1r-line:  22px;   --type-label1r-tracking:  0.0145em;
+  --type-label2-size:   13px;   --type-label2-line:   18px;   --type-label2-tracking:   0.0194em;
+  /* Caption */
+  --type-caption1-size: 12px;   --type-caption1-line: 16px;   --type-caption1-tracking: 0.0252em;
+  --type-caption2-size: 11px;   --type-caption2-line: 14px;   --type-caption2-tracking: 0.0311em;
+
+  /* Default weights (Pretendard JP) */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-extrabold: 800;
+
+  /* ─────────────── RADII ─────────────── */
+  --radius-2:  2px;
+  --radius-4:  4px;
+  --radius-6:  6px;
+  --radius-8:  8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-24: 24px;
+  --radius-32: 32px;
+  --radius-full: 9999px;
+
+  /* ─────────────── SPACING ─────────────── */
+  --space-2:   2px;
+  --space-4:   4px;
+  --space-6:   6px;
+  --space-8:   8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-128: 128px;
+
+  /* ─────────────── SHADOWS (Light) ─────────────── */
+  /* Elevation tokens — combined two-layer drop shadows */
+  --shadow-emphasize:
+    0 2px 1px -2px rgba(23, 23, 23, 0.06),
+    0 4px 4px -1px rgba(23, 23, 23, 0.06);
+  --shadow-strong:
+    0 4px 6px -1px rgba(23, 23, 23, 0.06),
+    0 2px 4px -2px rgba(23, 23, 23, 0.06);
+  --shadow-heavy:
+    0 10px 15px -3px rgba(23, 23, 23, 0.07),
+    0 4px 6px -2px rgba(0, 0, 0, 0.07);
+  --shadow-deeper:
+    0 16px 24px -6px rgba(23, 23, 23, 0.08),
+    0 6px 10px -4px rgba(23, 23, 23, 0.08);
+  --shadow-deepest:
+    0 24px 38px -10px rgba(23, 23, 23, 0.12),
+    0 10px 15px -5px rgba(23, 23, 23, 0.1);
+
+  /* ─────────────── MOTION ─────────────── */
+  --easing-standard:  cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --easing-enter:     cubic-bezier(0, 0, 0.2, 1);
+  --easing-exit:      cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast:    120ms;
+  --duration-normal:  200ms;
+  --duration-slow:    320ms;
+
+  /* Hover / press conventions */
+  --hover-bg-overlay: rgba(0, 0, 0, 0.04);  /* light hover */
+  --press-bg-overlay: rgba(0, 0, 0, 0.08);  /* light press */
+  --press-scale: 0.98;
+}
+
+/* ─────────────── DARK THEME OVERRIDES ─────────────── */
+[data-theme="dark"], .theme-dark {
+  --color-label-normal:    rgba(246, 246, 246, 0.88);
+  --color-label-strong:    rgba(255, 255, 255, 1);
+  --color-label-neutral:   rgba(246, 246, 246, 0.88);
+  --color-label-alternative: rgba(246, 246, 246, 0.61);
+  --color-label-assistive: rgba(246, 246, 246, 0.28);
+  --color-label-disable:   rgba(246, 246, 246, 0.16);
+
+  --color-background-normal:        var(--color-atomic-coolNeutral-9);  /* #171719 */
+  --color-background-alternative:   var(--color-atomic-coolNeutral-7);
+  --color-background-elevated:      var(--color-atomic-coolNeutral-13);
+  --color-background-elevated-alt:  var(--color-atomic-coolNeutral-17);
+  --color-background-overlay:       rgba(255, 255, 255, 0.08);
+  --color-background-dimmer:        rgba(0, 0, 0, 0.6);
+
+  --color-line-normal:        rgba(246, 246, 246, 0.16);
+  --color-line-neutral:       rgba(246, 246, 246, 0.08);
+  --color-line-alternative:   rgba(246, 246, 246, 0.05);
+
+  --color-primary-normal: var(--color-atomic-blue-60);
+  --color-primary-strong: var(--color-atomic-blue-65);
+
+  --hover-bg-overlay: rgba(255, 255, 255, 0.06);
+  --press-bg-overlay: rgba(255, 255, 255, 0.12);
+}
+
+/* ─────────────── SEMANTIC TYPE STYLES ─────────────── */
+/* Composite text classes — apply directly via class="t-title2" */
+
+.t-display1 { font: var(--weight-bold) var(--type-display1-size)/var(--type-display1-line) var(--font-sans); letter-spacing: var(--type-display1-tracking); }
+.t-display2 { font: var(--weight-bold) var(--type-display2-size)/var(--type-display2-line) var(--font-sans); letter-spacing: var(--type-display2-tracking); }
+.t-display3 { font: var(--weight-bold) var(--type-display3-size)/var(--type-display3-line) var(--font-sans); letter-spacing: var(--type-display3-tracking); }
+.t-title1   { font: var(--weight-bold) var(--type-title1-size)/var(--type-title1-line) var(--font-sans); letter-spacing: var(--type-title1-tracking); }
+.t-title2   { font: var(--weight-bold) var(--type-title2-size)/var(--type-title2-line) var(--font-sans); letter-spacing: var(--type-title2-tracking); }
+.t-title3   { font: var(--weight-bold) var(--type-title3-size)/var(--type-title3-line) var(--font-sans); letter-spacing: var(--type-title3-tracking); }
+.t-heading1 { font: var(--weight-semibold) var(--type-heading1-size)/var(--type-heading1-line) var(--font-sans); letter-spacing: var(--type-heading1-tracking); }
+.t-heading2 { font: var(--weight-semibold) var(--type-heading2-size)/var(--type-heading2-line) var(--font-sans); letter-spacing: var(--type-heading2-tracking); }
+.t-headline1 { font: var(--weight-semibold) var(--type-headline1-size)/var(--type-headline1-line) var(--font-sans); letter-spacing: var(--type-headline1-tracking); }
+.t-headline2 { font: var(--weight-semibold) var(--type-headline2-size)/var(--type-headline2-line) var(--font-sans); letter-spacing: var(--type-headline2-tracking); }
+.t-body1n   { font: var(--weight-medium) var(--type-body1n-size)/var(--type-body1n-line) var(--font-sans); letter-spacing: var(--type-body1n-tracking); }
+.t-body1r   { font: var(--weight-regular) var(--type-body1r-size)/var(--type-body1r-line) var(--font-sans); letter-spacing: var(--type-body1r-tracking); }
+.t-body2n   { font: var(--weight-medium) var(--type-body2n-size)/var(--type-body2n-line) var(--font-sans); letter-spacing: var(--type-body2n-tracking); }
+.t-body2r   { font: var(--weight-regular) var(--type-body2r-size)/var(--type-body2r-line) var(--font-sans); letter-spacing: var(--type-body2r-tracking); }
+.t-label1n  { font: var(--weight-medium) var(--type-label1n-size)/var(--type-label1n-line) var(--font-sans); letter-spacing: var(--type-label1n-tracking); }
+.t-label1r  { font: var(--weight-regular) var(--type-label1r-size)/var(--type-label1r-line) var(--font-sans); letter-spacing: var(--type-label1r-tracking); }
+.t-label2   { font: var(--weight-medium) var(--type-label2-size)/var(--type-label2-line) var(--font-sans); letter-spacing: var(--type-label2-tracking); }
+.t-caption1 { font: var(--weight-medium) var(--type-caption1-size)/var(--type-caption1-line) var(--font-sans); letter-spacing: var(--type-caption1-tracking); }
+.t-caption2 { font: var(--weight-medium) var(--type-caption2-size)/var(--type-caption2-line) var(--font-sans); letter-spacing: var(--type-caption2-tracking); }
+
+/* Base body + page reset (opt-in via `.wanted` ancestor) */
+.wanted {
+  font-family: var(--font-sans);
+  color: var(--color-label-normal);
+  background: var(--color-background-normal);
+  font-feature-settings: "ss02", "cv01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+.wanted * { box-sizing: border-box; }

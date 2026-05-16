@@ -2,15 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_symbol.dart';
+import '../../../../core/widgets/top_bar.dart';
+import '../../domain/entities/verse.dart';
 import '../providers/verse_provider.dart';
 import '../providers/verse_audio_provider.dart';
 import '../../../../features/settings/presentation/providers/settings_provider.dart';
 import '../../../../features/settings/presentation/screens/settings_screen.dart';
-import '../widgets/verse_card.dart';
 import '../widgets/book_info_card.dart';
+import '../widgets/verse_card.dart';
 
+// Verse Experience — 2-page horizontal PageView:
+//   Page 0: Book description (context first)
+//   Page 1: Verse (both verses together)
 class DailyVerseScreen extends ConsumerStatefulWidget {
-  const DailyVerseScreen({super.key});
+  // Optional: pre-loaded verse for history re-entry.
+  final Verse? initialVerse;
+
+  const DailyVerseScreen({super.key, this.initialVerse});
 
   @override
   ConsumerState<DailyVerseScreen> createState() => _DailyVerseScreenState();
@@ -18,30 +28,39 @@ class DailyVerseScreen extends ConsumerStatefulWidget {
 
 class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  final _pageCtrl = PageController();
+  int _currentPage = 0;
   bool _autoPlayTriggered = false;
   bool _notificationCheckDone = false;
+
+  // Fade-in animation for the content
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _fadeCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 700),
     );
-    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageCtrl.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
+  }
+
+  void _schedulePlay(String audioUrl) {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      ref.read(verseAudioProvider.notifier)
+        ..setVolume(ref.read(ttsVolumeProvider))
+        ..playOnce(audioUrl);
+    });
   }
 
   Future<void> _maybeRequestNotificationPermission() async {
@@ -51,7 +70,6 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     await prefs.setBool('notification_permission_asked', true);
 
     if (!mounted) return;
-    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -61,37 +79,37 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('나중에', style: TextStyle(color: theme.textTheme.bodySmall?.color)),
+            child: Text('나중에',
+                style: TextStyle(color: context.tvTextMid)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('허용', style: TextStyle(color: theme.colorScheme.primary)),
+            child: Text('허용',
+                style: TextStyle(color: context.tvGold)),
           ),
         ],
       ),
     );
-
     if (confirmed == true && mounted) {
       await FirebaseMessaging.instance.requestPermission();
       await FirebaseMessaging.instance.subscribeToTopic('daily_verse');
     }
   }
 
-  void _schedulePlay(String audioUrl) {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        ref.read(verseAudioProvider.notifier)
-          ..setVolume(ref.read(ttsVolumeProvider))
-          ..playOnce(audioUrl);
-      }
-    });
-  }
+  String _topBarTitle(int page) => page == 0 ? '책 설명' : '오늘의 구절';
+  String _topBarSubtitle(int page) => page == 0 ? 'Context' : 'Verse';
 
   @override
   Widget build(BuildContext context) {
+    // If an initial verse was provided (history re-entry), use it directly.
+    final initialVerse = widget.initialVerse;
+
+    if (initialVerse != null) {
+      return _buildExperience(context, initialVerse);
+    }
+
     final verseAsync = ref.watch(todayVerseProvider);
     final isTtsEnabled = ref.watch(settingsProvider);
-    final theme = Theme.of(context);
 
     ref.listen<bool>(settingsProvider, (_, next) {
       if (!next) ref.read(verseAudioProvider.notifier).stop();
@@ -101,138 +119,163 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
       ref.read(verseAudioProvider.notifier).setVolume(next);
     });
 
+    return verseAsync.when(
+      loading: () => _buildLoading(context),
+      error: (e, _) => _buildError(context),
+      data: (verse) {
+        if (verse == null) return _buildEmpty(context);
+
+        _fadeCtrl.forward();
+
+        if (!_notificationCheckDone) {
+          _notificationCheckDone = true;
+          Future.delayed(
+            const Duration(milliseconds: 2000),
+            _maybeRequestNotificationPermission,
+          );
+        }
+
+        if (isTtsEnabled && verse.audioUrl != null && !_autoPlayTriggered) {
+          _autoPlayTriggered = true;
+          _schedulePlay(verse.audioUrl!);
+        }
+
+        return FadeTransition(
+          opacity: _fadeAnim,
+          child: _buildExperience(context, verse),
+        );
+      },
+    );
+  }
+
+  Widget _buildExperience(BuildContext context, Verse verse) {
+    final isTtsEnabled = ref.watch(settingsProvider);
+    final audioState = ref.watch(verseAudioProvider);
+
     return Scaffold(
       body: SafeArea(
-        child: verseAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(strokeWidth: 1),
-          ),
-          error: (e, _) => const Center(
-            child: Text('구절을 불러오지 못했습니다.'),
-          ),
-          data: (verse) {
-            if (verse == null) {
-              return Center(
-                child: Text(
-                  '오늘의 구절이 준비 중입니다.',
-                  style: theme.textTheme.bodyMedium,
+        child: Column(
+          children: [
+            // Top bar — animates title as page changes
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: TVTopBar(
+                key: ValueKey(_currentPage),
+                leading: TVGhostButton(
+                  onTap: () => Navigator.of(context).pop(),
+                  semanticLabel: '홈으로',
+                  child: AppSymbol(size: 22, color: context.tvTextMid),
                 ),
-              );
-            }
-
-            _controller.forward();
-
-            if (!_notificationCheckDone) {
-              _notificationCheckDone = true;
-              Future.delayed(
-                const Duration(milliseconds: 2000),
-                _maybeRequestNotificationPermission,
-              );
-            }
-
-            if (isTtsEnabled && verse.audioUrl != null && !_autoPlayTriggered) {
-              _autoPlayTriggered = true;
-              _schedulePlay(verse.audioUrl!);
-            }
-
-            final audioState = ref.watch(verseAudioProvider);
-
-            final size = MediaQuery.of(context).size;
-            final safePaddingTop = MediaQuery.of(context).padding.top;
-            final safePaddingBottom = MediaQuery.of(context).padding.bottom;
-            // 상단 섹션(헤더+구절)이 화면 50% 지점에서 끝나도록 계산
-            final topSectionHeight = (size.height * 0.5 - safePaddingTop - 48.0).clamp(180.0, double.infinity);
-            // 하단(BookInfoCard) 가용 공간에서 오버헤드를 빼 콘텐츠 최대 높이 산정
-            final maxBookContentHeight = (size.height * 0.5 - safePaddingBottom - 124.0).clamp(100.0, 300.0);
-
-            return FadeTransition(
-              opacity: _fadeAnim,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(32, 48, 32, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: topSectionHeight,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _formattedDate().toUpperCase(),
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                                Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: isTtsEnabled && verse.audioUrl != null
-                                          ? () => ref
-                                              .read(verseAudioProvider.notifier)
-                                              .toggle(verse.audioUrl!)
-                                          : null,
-                                      child: Icon(
-                                        audioState.isPlaying || audioState.isLoading
-                                            ? Icons.pause
-                                            : Icons.play_arrow,
-                                        size: 20,
-                                        color: isTtsEnabled
-                                            ? theme.textTheme.bodySmall?.color
-                                            : theme.textTheme.bodySmall?.color
-                                                ?.withOpacity(0.3),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    GestureDetector(
-                                      onTap: () => Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => const SettingsScreen(),
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.settings_outlined,
-                                        size: 18,
-                                        color: theme.textTheme.bodySmall?.color,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            Expanded(
-                              child: VerseCard(verse: verse),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      BookInfoCard(
-                        description: verse.bookDescription,
-                        maxContentHeight: maxBookContentHeight,
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+                subtitle: _topBarSubtitle(_currentPage),
+                title: _topBarTitle(_currentPage),
+                trailing: TTSPill(
+                  playing: audioState.isPlaying,
+                  loading: audioState.isLoading,
+                  enabled: isTtsEnabled && verse.audioUrl != null,
+                  duration: '2:18',
+                  onToggle: verse.audioUrl != null
+                      ? () => ref.read(verseAudioProvider.notifier).toggle(verse.audioUrl!)
+                      : null,
                 ),
               ),
-            );
-          },
+            ),
+
+            // PageView
+            Expanded(
+              child: PageView(
+                controller: _pageCtrl,
+                onPageChanged: (i) {
+                  setState(() => _currentPage = i);
+                  // Stop TTS when moving between pages
+                  ref.read(verseAudioProvider.notifier).stop();
+                },
+                children: [
+                  BookDescriptionPage(
+                    bookName: verse.book,
+                    bookDescription: verse.bookDescription,
+                    onSwipeToVerse: () => _pageCtrl.animateToPage(
+                      1,
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+                  VersePage(verse: verse),
+                ],
+              ),
+            ),
+
+            // Page dots
+            TVPageDots(count: 2, active: _currentPage),
+
+            // Settings shortcut — small icon at bottom right
+            Padding(
+              padding: const EdgeInsets.only(right: 16, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TVGhostButton(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                  semanticLabel: '설정',
+                  child: Icon(Icons.tune_rounded, size: 18, color: context.tvTextLo),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  String _formattedDate() {
-    final now = DateTime.now();
-    const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
-    ];
-    return '${months[now.month - 1]} ${now.day}, ${now.year}';
+  Widget _buildLoading(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '오늘의 구절을 가져오는 중…',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: context.tvTextMid,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: 6, height: 6,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.tvGold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Text(
+          '구절을 불러오지 못했습니다.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Text(
+          '오늘의 구절이 준비 중입니다.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+    );
   }
 }

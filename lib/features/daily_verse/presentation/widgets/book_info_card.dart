@@ -1,75 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_theme.dart';
 
-class BookInfoCard extends StatefulWidget {
-  final String description;
-  final double? maxContentHeight;
+// Book Description Page — Page 1 of the verse experience PageView.
+class BookDescriptionPage extends StatelessWidget {
+  final String bookName;
+  final String bookDescription;
+  final VoidCallback onSwipeToVerse;
 
-  const BookInfoCard({super.key, required this.description, this.maxContentHeight});
-
-  @override
-  State<BookInfoCard> createState() => _BookInfoCardState();
-}
-
-class _BookInfoCardState extends State<BookInfoCard> {
-  bool _expanded = true;
-
-  void _toggle() => setState(() => _expanded = !_expanded);
+  const BookDescriptionPage({
+    super.key,
+    required this.bookName,
+    required this.bookDescription,
+    required this.onSwipeToVerse,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final contentHeight = widget.maxContentHeight ?? MediaQuery.of(context).size.height * 0.30;
+    final paragraphs = bookDescription
+        .split('\n')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
-    return GestureDetector(
-      onTap: _expanded ? null : _toggle,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xFF2A2A2A)
-              : const Color(0xFFF0EAE0),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: _toggle,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '이 책에 대하여',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  Icon(
-                    _expanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    size: 18,
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ],
-              ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Genre label
+          Text(
+            'BOOK BACKGROUND',
+            style: GoogleFonts.cormorantGaramond(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: context.tvGold,
+              letterSpacing: 1.4,
             ),
-            if (_expanded) ...[
-              const SizedBox(height: 12),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: contentHeight),
-                child: SingleChildScrollView(
-                  child: Text(
-                    widget.description,
-                    style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 4),
+
+          // Book title — 나눔명조 ExtraBold 44px
+          Text(
+            bookName,
+            style: Theme.of(context).textTheme.displayMedium,
+          ),
+          const SizedBox(height: 8),
+
+          // Period separator dot
+          Container(
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: context.tvGold.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Description paragraphs
+          ...paragraphs.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(p, style: Theme.of(context).textTheme.bodyMedium),
+              )),
+
+          const SizedBox(height: 8),
+
+          // Ornament divider ─── ✣ ───
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                    height: 1,
+                    color: context.tvGold.withValues(alpha: 0.25)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '✣',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                    color: context.tvGold.withValues(alpha: 0.55),
                   ),
                 ),
               ),
+              Expanded(
+                child: Container(
+                    height: 1,
+                    color: context.tvGold.withValues(alpha: 0.25)),
+              ),
             ],
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Swipe hint
+          GestureDetector(
+            onTap: onSwipeToVerse,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '오늘의 구절로 넘어가기',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 15,
+                    fontStyle: FontStyle.italic,
+                    color: context.tvTextLo,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: context.tvGold,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

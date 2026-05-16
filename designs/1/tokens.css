@@ -1,0 +1,132 @@
+/* ============================================================
+   오늘의 구절 — Design Tokens
+   Sepia + Gold + Editorial · light & dark themes
+   ============================================================ */
+
+/* ---- Korean serif (verse body) ---------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* —— Palette · Light (sepia cream) ————————————————— */
+  --tv-bg:            #F0E8D8;   /* sepia cream */
+  --tv-bg-2:          #E8DEC9;   /* surface 1 — cards on bg */
+  --tv-bg-3:          #DDD0B4;   /* surface 2 — pressed/active */
+  --tv-paper:         #F7F0E0;   /* lighter paper (verse paper) */
+  --tv-line:          rgba(95, 65, 20, 0.14);
+  --tv-line-strong:   rgba(95, 65, 20, 0.24);
+
+  --tv-text-hi:       #2C2218;   /* deep sepia brown */
+  --tv-text-mid:      #6B5A47;   /* medium warm */
+  --tv-text-lo:       #9C8B72;   /* light warm */
+  --tv-text-on-gold:  #F7F0E0;
+
+  --tv-gold:          #8B6914;   /* point — light gold */
+  --tv-gold-soft:     #B58A2A;
+  --tv-gold-bg:       rgba(139, 105, 20, 0.10);
+
+  /* status (sparingly used, warm bias) */
+  --tv-status-pos:    #5C7A3A;
+  --tv-status-neg:    #A04125;
+
+  /* —— Type tokens ——————————————————————————————————— */
+  --tv-font-serif-ko: 'Nanum Myeongjo', 'Apple SD Gothic Neo', serif;
+  --tv-font-sans-ko:  'Noto Sans KR', 'Pretendard JP', 'Apple SD Gothic Neo', sans-serif;
+  --tv-font-display:  'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+
+  /* —— Radii ————————————————————————————————————————— */
+  --tv-r-sm: 8px;
+  --tv-r-md: 14px;
+  --tv-r-lg: 20px;
+  --tv-r-xl: 28px;
+  --tv-r-full: 9999px;
+
+  /* —— Shadows (warm) ——————————————————————————————— */
+  --tv-shadow-soft:  0 1px 2px rgba(70, 45, 15, 0.06),
+                     0 6px 18px rgba(70, 45, 15, 0.08);
+  --tv-shadow-card:  0 1px 2px rgba(70, 45, 15, 0.05),
+                     0 12px 28px rgba(70, 45, 15, 0.10);
+  --tv-shadow-lift:  0 2px 4px rgba(70, 45, 15, 0.06),
+                     0 22px 48px rgba(70, 45, 15, 0.14);
+
+  /* —— Spacing scale (4-pt) ———————————————————————— */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 56px;
+
+  /* —— Motion ————————————————————————————————————————— */
+  --tv-ease: cubic-bezier(0.2, 0, 0, 1);
+  --tv-fade-in: 600ms;
+}
+
+/* ---- Dark theme (warm dark, not slate) -------------------- */
+[data-theme="dark"] {
+  --tv-bg:            #1C1A16;
+  --tv-bg-2:          #25221C;
+  --tv-bg-3:          #2F2B23;
+  --tv-paper:         #221F1A;
+  --tv-line:          rgba(212, 168, 67, 0.14);
+  --tv-line-strong:   rgba(212, 168, 67, 0.24);
+
+  --tv-text-hi:       #ECE1CA;   /* warm off-white */
+  --tv-text-mid:      #A89B82;
+  --tv-text-lo:       #6E6452;
+  --tv-text-on-gold:  #1C1A16;
+
+  --tv-gold:          #D4A843;
+  --tv-gold-soft:     #C4972F;
+  --tv-gold-bg:       rgba(212, 168, 67, 0.12);
+
+  --tv-status-pos:    #9CB76B;
+  --tv-status-neg:    #C47A5C;
+
+  --tv-shadow-soft:  0 1px 2px rgba(0, 0, 0, 0.4),
+                     0 6px 18px rgba(0, 0, 0, 0.32);
+  --tv-shadow-card:  0 1px 2px rgba(0, 0, 0, 0.4),
+                     0 12px 28px rgba(0, 0, 0, 0.4);
+  --tv-shadow-lift:  0 2px 4px rgba(0, 0, 0, 0.4),
+                     0 22px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Type recipes ---------------------------------------- */
+.tv-display {
+  font-family: var(--tv-font-display);
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+.tv-display-it {
+  font-family: var(--tv-font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+.tv-verse {
+  font-family: var(--tv-font-serif-ko);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.85;
+}
+.tv-body {
+  font-family: var(--tv-font-sans-ko);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.7;
+}
+.tv-mono-ref {
+  font-family: var(--tv-font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* universally apply default text color */
+.tv-root {
+  background: var(--tv-bg);
+  color: var(--tv-text-hi);
+  font-family: var(--tv-font-sans-ko);
+  -webkit-font-smoothing: antialiased;
+  font-smoothing: antialiased;
+}

@@ -21,7 +21,18 @@ class VerseRepository {
     return VerseModel.fromFirestore(yesterdayDoc.data()!);
   }
 
-  String _dateKey(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  Future<List<VerseModel>> getRecentVerses({int limit = 30}) async {
+    final snap = await _firestore
+        .collection('daily_verses')
+        .orderBy(FieldPath.documentId, descending: true)
+        .limit(limit)
+        .get();
+    return snap.docs
+        .where((d) => d.data().isNotEmpty)
+        .map((d) => VerseModel.fromFirestore(d.data(), dateKey: d.id))
+        .toList();
   }
+
+  String _dateKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

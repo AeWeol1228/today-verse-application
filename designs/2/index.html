@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>오늘의 구절 — App Design</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: #F4F4F5;
+    color: var(--color-label-normal);
+  }
+
+  /* Canvas root styling */
+  .canvas-host { width: 100vw; height: 100vh; }
+
+  /* Section header (above canvas sections) */
+  .dc-section-title { font-family: var(--font-brand) !important; }
+
+  /* small inline screen-label badge under the artboard heading */
+  .screen-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: #fff;
+    border: 1px solid var(--color-line-normal);
+    font: 500 11px/14px var(--font-sans);
+    letter-spacing: 0.04em;
+    color: var(--color-label-alternative);
+  }
+  .screen-tag::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #5B4BB8;
+  }
+
+  /* Intro card under page title (centered above canvas) */
+  .intro {
+    position: absolute;
+    top: 18px; left: 24px;
+    z-index: 10;
+    pointer-events: none;
+    max-width: 460px;
+  }
+  .intro-eyebrow {
+    font: 500 11px/14px var(--font-sans);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #5B4BB8;
+  }
+  .intro h1 {
+    margin: 6px 0 6px;
+    font-family: var(--font-brand);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 32px;
+    letter-spacing: -0.026em;
+    color: #1C1D22;
+  }
+  .intro p {
+    margin: 0;
+    font: 400 13px/20px var(--font-sans);
+    color: #5A5C63;
+    letter-spacing: 0.005em;
+    max-width: 56ch;
+  }
+  .intro-meta {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 12px;
+    padding: 5px 10px 5px 8px;
+    background: #fff;
+    border: 1px solid #E1E2E4;
+    border-radius: 9999px;
+    font: 500 11px/14px var(--font-sans);
+    letter-spacing: 0.04em;
+    color: #5A5C63;
+  }
+  .intro-meta::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #5B4BB8;
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="root" class="canvas-host"></div>
+
+<div class="intro">
+  <div class="intro-eyebrow">TODAY-VERSE · 디자인 v2</div>
+  <h1>오늘의 구절 — 4개 화면, 2개 테마</h1>
+  <p>매일 아침 성경 한 구절을 조용히 마주하는 신앙 앱. Wanted 디자인 시스템을 토대로, 절제된 타이포그래피와 깊은 잉크-바이올렛 액센트로 묵상의 분위기를 빚었습니다.</p>
+  <div class="intro-meta">iPhone 16 · 393 × 852 · iOS 26</div>
+</div>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="screens.jsx"></script>
+
+<script type="text/babel" data-presets="react" data-screen-label="root">
+
+// iOS frame at iPhone 16 size
+const PHONE_W = 393;
+const PHONE_H = 852;
+const ARTBOARD_W = PHONE_W;
+const ARTBOARD_H = PHONE_H;
+
+function PhoneFrame({ dark = false, children }) {
+  return (
+    <IOSDevice width={PHONE_W} height={PHONE_H} dark={dark}>
+      {children}
+    </IOSDevice>
+  );
+}
+
+function ThemedScreen({ dark, children }) {
+  return (
+    <div data-theme={dark ? 'dark' : 'light'} style={{ width: '100%', height: '100%' }}>
+      {children}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas storageKey="today-verse-v2">
+      <DCSection id="light" title="01 · 라이트 모드" subtitle="Daily quiet · paper-like surfaces, ink-violet accent">
+        <DCArtboard id="l-main" label="① 메인" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={false}>
+            <ThemedScreen dark={false}><MainScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="l-book" label="② 구절 경험 · 책 배경" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={false}>
+            <ThemedScreen dark={false}><VerseBookScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="l-verse" label="③ 구절 경험 · 본문" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={false}>
+            <ThemedScreen dark={false}><VerseTextScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="l-history" label="④ 히스토리" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={false}>
+            <ThemedScreen dark={false}><HistoryScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="l-settings" label="⑤ 설정" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={false}>
+            <ThemedScreen dark={false}><SettingsScreen themeChoice="light" /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="dark" title="02 · 다크 모드" subtitle="Quiet night · same rhythm, deeper paper">
+        <DCArtboard id="d-main" label="① 메인" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={true}>
+            <ThemedScreen dark={true}><MainScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="d-book" label="② 구절 경험 · 책 배경" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={true}>
+            <ThemedScreen dark={true}><VerseBookScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="d-verse" label="③ 구절 경험 · 본문" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={true}>
+            <ThemedScreen dark={true}><VerseTextScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="d-history" label="④ 히스토리" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={true}>
+            <ThemedScreen dark={true}><HistoryScreen /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="d-settings" label="⑤ 설정" width={ARTBOARD_W} height={ARTBOARD_H}>
+          <PhoneFrame dark={true}>
+            <ThemedScreen dark={true}><SettingsScreen themeChoice="dark" /></ThemedScreen>
+          </PhoneFrame>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>

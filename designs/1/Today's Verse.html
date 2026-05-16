@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>오늘의 구절 — Design Exploration</title>
+
+  <link rel="stylesheet" href="tokens.css" />
+
+  <style>
+    html, body, #root {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: #EDE3CB;
+      font-family: var(--tv-font-sans-ko);
+      color: var(--tv-text-hi);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; }
+
+    /* keyframes */
+    @keyframes tvBar {
+      0%, 100% { transform: scaleY(0.4); }
+      50%      { transform: scaleY(1); }
+    }
+    @keyframes tvShimmer {
+      0%   { transform: translateX(-60%); }
+      100% { transform: translateX(60%); }
+    }
+    @keyframes tvBreathe {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50%      { opacity: 1;   transform: scale(1.1); }
+    }
+    @keyframes tvFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+  </style>
+
+  <!-- React 18 + Babel (pinned) -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+    integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
+    crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+    integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
+    crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
+    integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
+    crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- data -->
+  <script src="content.js"></script>
+
+  <!-- components & app -->
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="stipple.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

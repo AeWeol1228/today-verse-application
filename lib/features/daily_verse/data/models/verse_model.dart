@@ -9,9 +9,10 @@ class VerseModel extends Verse {
     required super.verseText,
     required super.bookDescription,
     super.audioUrl,
+    super.dateKey,
   });
 
-  factory VerseModel.fromFirestore(Map<String, dynamic> data) {
+  factory VerseModel.fromFirestore(Map<String, dynamic> data, {String? dateKey}) {
     return VerseModel(
       book: data['book'] as String,
       chapter: data['chapter'] as int,
@@ -20,6 +21,7 @@ class VerseModel extends Verse {
       verseText: data['verse_text'] as String,
       bookDescription: data['book_description'] as String,
       audioUrl: data['audio_url'] as String?,
+      dateKey: dateKey,
     );
   }
 

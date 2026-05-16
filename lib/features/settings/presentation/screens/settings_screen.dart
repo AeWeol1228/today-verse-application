@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/settings_provider.dart';
-
-const _themeModeLabels = {
-  ThemeMode.system: '시스템',
-  ThemeMode.light: '라이트',
-  ThemeMode.dark: '다크',
-};
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_symbol.dart';
+import '../../../../core/widgets/top_bar.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -17,125 +15,314 @@ class SettingsScreen extends ConsumerWidget {
     final isTtsEnabled = ref.watch(settingsProvider);
     final ttsVolume = ref.watch(ttsVolumeProvider);
     final themeMode = ref.watch(themeModeProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '설정',
-          style: theme.textTheme.bodyMedium?.copyWith(letterSpacing: 1.5),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => Navigator.of(context).pop(),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TVTopBar(
+              leading: TVGhostButton(
+                onTap: () => Navigator.of(context).pop(),
+                semanticLabel: '홈',
+                child: AppSymbol(size: 22, color: context.tvTextMid),
+              ),
+              subtitle: 'Settings',
+              title: '설정',
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 12, 28, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '설정',
+                    style: GoogleFonts.nanumMyeongjo(
+                      fontSize: 32, fontWeight: FontWeight.w800,
+                      color: context.tvTextHi, letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Preferences',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 14, fontStyle: FontStyle.italic,
+                      color: context.tvTextLo, letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                children: [
+                  // ── 음성 · Voice ──────────────────────────
+                  _SectionHeader(label: '음성 · Voice'),
+                  _SettingsGroup(children: [
+                    _SwitchRow(
+                      title: '자동 낭독',
+                      sub: '페이지 진입 시 책 설명과 구절을 읽어줍니다',
+                      value: isTtsEnabled,
+                      onChanged: (v) =>
+                          ref.read(settingsProvider.notifier).setTtsEnabled(v),
+                    ),
+                    _Divider(),
+                    _VolumeRow(
+                      volume: ttsVolume,
+                      enabled: isTtsEnabled,
+                      onChanged: (v) =>
+                          ref.read(ttsVolumeProvider.notifier).setVolume(v),
+                    ),
+                  ]),
+
+                  const SizedBox(height: 4),
+
+                  // ── 화면 · Theme ──────────────────────────
+                  _SectionHeader(label: '화면 · Theme'),
+                  _SettingsGroup(children: [
+                    _ThemePicker(current: themeMode),
+                  ]),
+
+                  const SizedBox(height: 4),
+
+                  // ── 후원 · Support ────────────────────────
+                  _SectionHeader(label: '후원 · Support'),
+                  _SettingsGroup(children: [
+                    _LinkRow(
+                      icon: Icons.favorite_rounded,
+                      title: '개발자에게 커피 한 잔',
+                      sub: '이 앱을 만든 사람을 응원합니다',
+                      onTap: () => launchUrl(
+                        Uri.parse('https://qr.kakaopay.com/FXAHety7o'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                    _Divider(),
+                    _LinkRow(
+                      icon: Icons.north_east_rounded,
+                      title: '피드백 보내기',
+                      sub: '조용히 듣고 있어요',
+                      onTap: () {},
+                    ),
+                  ]),
+
+                  const SizedBox(height: 28),
+
+                  // Footer
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          '오늘의 구절',
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 14, fontStyle: FontStyle.italic,
+                            color: context.tvTextLo, letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'MADE QUIETLY',
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 11, color: context.tvTextLo,
+                            letterSpacing: 2.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      body: Column(
+    );
+  }
+}
+
+// ── Section header ────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  const _SectionHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 20, 8, 10),
+      child: Text(
+        label.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          letterSpacing: 1.6,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings group container ──────────────────────────────────
+class _SettingsGroup extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.tvBg2,
+        border: Border.all(color: context.tvLine),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 1,
+      color: context.tvLine,
+    );
+  }
+}
+
+// ── Switch row ────────────────────────────────────────────────
+class _SwitchRow extends StatelessWidget {
+  final String title;
+  final String sub;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SwitchRow({
+    required this.title,
+    required this.sub,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
         children: [
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              children: [
-                _SectionLabel(label: '음성', theme: theme),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: SwitchListTile(
-                    title: Text('이 책에 대하여 읽어주기', style: theme.textTheme.bodyMedium),
-                    subtitle: Text(
-                      '성경 책 설명을 음성으로 들을 수 있어요',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    value: isTtsEnabled,
-                    onChanged: (v) =>
-                        ref.read(settingsProvider.notifier).setTtsEnabled(v),
-                    activeColor: theme.colorScheme.primary,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionLabel(label: '화면', theme: theme),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('테마', style: theme.textTheme.bodyMedium),
-                        _ThemeSelector(current: themeMode),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('볼륨', style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isTtsEnabled ? null : theme.textTheme.bodyMedium?.color?.withOpacity(0.4),
-                            )),
-                            Text(
-                              '${(ttsVolume * 100).round()}%',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isTtsEnabled
-                                    ? theme.colorScheme.primary
-                                    : theme.textTheme.bodySmall?.color?.withOpacity(0.4),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Slider(
-                          value: ttsVolume,
-                          min: 0.0,
-                          max: 1.0,
-                          divisions: 20,
-                          onChanged: isTtsEnabled
-                              ? (v) => ref.read(ttsVolumeProvider.notifier).setVolume(v)
-                              : null,
-                          activeColor: theme.colorScheme.primary,
-                          inactiveColor: theme.colorScheme.primary.withOpacity(0.2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionLabel(label: '개발자', theme: theme),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Icon(Icons.coffee_rounded, color: theme.colorScheme.primary),
-                    title: Text('개발자에게 커피 한 잔', style: theme.textTheme.bodyMedium),
-                    subtitle: Text(
-                      '앱이 마음에 드셨다면 응원해 주세요',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: theme.colorScheme.primary),
-                    onTap: () => launchUrl(
-                      Uri.parse('https://qr.kakaopay.com/FXAHety7o'),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                  ),
-                ),
+                Text(title, style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: 2),
+                Text(sub,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.tvTextMid, fontSize: 12,
+                    )),
               ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _Toggle(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+class _Toggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _Toggle({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 46, height: 28,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: value ? context.tvGold : Colors.transparent,
+          border: Border.all(
+            color: value ? Colors.transparent : context.tvLineStrong,
+            width: 1,
+          ),
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 200),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.all(3),
+            width: 20, height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: value ? Colors.white : context.tvTextLo,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Volume row ────────────────────────────────────────────────
+class _VolumeRow extends StatelessWidget {
+  final double volume;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  const _VolumeRow({
+    required this.volume,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('음량',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: enabled ? null : context.tvTextLo,
+                  )),
+              Text(
+                '${(volume * 100).round()}%',
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 13, letterSpacing: 0.2,
+                  color: enabled ? context.tvGold : context.tvTextLo,
+                ),
+              ),
+            ],
+          ),
+          Opacity(
+            opacity: enabled ? 1 : 0.4,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: context.tvGold,
+                inactiveTrackColor: context.tvLineStrong,
+                thumbColor: context.tvBg,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                trackHeight: 3,
+              ),
+              child: Slider(
+                value: volume,
+                min: 0,
+                max: 1,
+                divisions: 20,
+                onChanged: enabled ? onChanged : null,
+              ),
             ),
           ),
         ],
@@ -144,81 +331,115 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  final ThemeData theme;
+// ── Theme picker ──────────────────────────────────────────────
+class _ThemePicker extends ConsumerWidget {
+  final ThemeMode current;
+  const _ThemePicker({required this.current});
 
-  const _SectionLabel({required this.label, required this.theme});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final options = [
+      (mode: ThemeMode.light, label: '라이트', icon: Icons.light_mode_outlined),
+      (mode: ThemeMode.dark,  label: '다크',   icon: Icons.dark_mode_outlined),
+      (mode: ThemeMode.system,label: '시스템', icon: Icons.brightness_auto_outlined),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: options.map((o) {
+          final active = current == o.mode;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(o.mode),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: active ? context.tvGoldBg : Colors.transparent,
+                  border: Border.all(
+                    color: active ? context.tvGold : context.tvLine,
+                    width: active ? 1.5 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Icon(o.icon,
+                        size: 20,
+                        color: active ? context.tvGold : context.tvTextMid),
+                    const SizedBox(height: 6),
+                    Text(
+                      o.label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: active ? context.tvGold : context.tvTextMid,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ── Link row ──────────────────────────────────────────────────
+class _LinkRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? sub;
+  final VoidCallback onTap;
+
+  const _LinkRow({
+    required this.icon,
+    required this.title,
+    this.sub,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 4),
-      child: Text(
-        label.toUpperCase(),
-        style: theme.textTheme.bodySmall?.copyWith(letterSpacing: 1.5),
-      ),
-    );
-  }
-}
-
-class _SettingsCard extends ConsumerWidget {
-  final Widget child;
-
-  const _SettingsCard({required this.child});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-    final brightness = MediaQuery.platformBrightnessOf(context);
-    final isDark = themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system && brightness == Brightness.dark);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOutCubic,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0EAE0),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _ThemeSelector extends ConsumerWidget {
-  final ThemeMode current;
-
-  const _ThemeSelector({required this.current});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-    final brightness = MediaQuery.platformBrightnessOf(context);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system && brightness == Brightness.dark);
-
-    return Row(
-      children: _themeModeLabels.entries.map((e) {
-        final selected = current == e.key;
-        return GestureDetector(
-          onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(e.key),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: theme.textTheme.bodySmall!.copyWith(
-                color: selected ? primary : (isDark ? const Color(0xFF666666) : const Color(0xFFBBBBBB)),
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                fontSize: 13,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: context.tvGoldBg,
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(e.value),
+              child: Icon(icon, size: 18, color: context.tvGold),
             ),
-          ),
-        );
-      }).toList(),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.bodyLarge),
+                  if (sub != null) ...[
+                    const SizedBox(height: 2),
+                    Text(sub!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 12, color: context.tvTextMid,
+                        )),
+                  ],
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: context.tvTextLo),
+          ],
+        ),
+      ),
     );
   }
 }

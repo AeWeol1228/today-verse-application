@@ -7,3 +7,7 @@ final verseRepositoryProvider = Provider((_) => VerseRepository());
 final todayVerseProvider = FutureProvider<VerseModel?>((ref) {
   return ref.watch(verseRepositoryProvider).getTodayVerse();
 });
+
+final historyVersesProvider = FutureProvider<List<VerseModel>>((ref) {
+  return ref.watch(verseRepositoryProvider).getRecentVerses(limit: 60);
+});
