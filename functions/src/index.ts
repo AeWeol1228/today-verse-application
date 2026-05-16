@@ -194,6 +194,7 @@ export const generateDailyVerse = onSchedule(
     schedule: "0 10 * * *",
     timeZone: "Asia/Seoul",
     secrets: ["GEMINI_API_KEY"],
+    timeoutSeconds: 300,
   },
   async () => {
     const apiKey = process.env.GEMINI_API_KEY;
