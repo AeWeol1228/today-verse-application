@@ -4,10 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 // ── Sepia + Gold color tokens ──────────────────────────────────
 class AppColors {
   // Light
-  static const lightBg        = Color(0xFFF0E8D8);
-  static const lightBg2       = Color(0xFFE8DEC9);
-  static const lightBg3       = Color(0xFFDDD0B4);
-  static const lightPaper     = Color(0xFFF7F0E0);
+  static const lightBg        = Color(0xFFFAF7F2);
+  static const lightBg2       = Color(0xFFF3EDE2);
+  static const lightBg3       = Color(0xFFE8DFCF);
+  static const lightPaper     = Color(0xFFFDFBF8);
   static const lightTextHi    = Color(0xFF2C2218);
   static const lightTextMid   = Color(0xFF6B5A47);
   static const lightTextLo    = Color(0xFF9C8B72);

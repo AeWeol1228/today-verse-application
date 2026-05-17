@@ -119,8 +119,8 @@ class TTSPill extends StatelessWidget {
       onTap: enabled ? onToggle : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
           color: context.tvBg2,
           border: Border.all(color: context.tvLine),
@@ -133,7 +133,7 @@ class TTSPill extends StatelessWidget {
               loading
                   ? Icons.hourglass_empty_rounded
                   : (playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
-              size: 16,
+              size: 32,
               color: (playing || loading) ? context.tvGold : context.tvTextMid,
             ),
             if (duration.isNotEmpty) ...[
@@ -182,7 +182,7 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
-    const heights = [6.0, 11.0, 8.0, 13.0, 7.0];
+    const heights = [12.0, 22.0, 16.0, 26.0, 14.0];
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) => Row(
@@ -192,9 +192,9 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
           final phase = (_ctrl.value + i * 0.12) % 1.0;
           final scale = 0.4 + 0.6 * (0.5 - 0.5 * (phase < 0.5 ? phase * 2 - 1 : 1 - (phase - 0.5) * 2)).abs();
           return Container(
-            width: 2,
+            width: 4,
             height: heights[i] * scale,
-            margin: const EdgeInsets.symmetric(horizontal: 1),
+            margin: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
               color: widget.color,
               borderRadius: BorderRadius.circular(1),

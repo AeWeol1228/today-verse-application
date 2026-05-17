@@ -165,79 +165,85 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     final isTtsEnabled = ref.watch(settingsProvider);
     final audioState = ref.watch(verseAudioProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top bar — animates title as page changes
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: TVTopBar(
-                key: ValueKey(_currentPage),
-                leading: TVGhostButton(
-                  onTap: () => Navigator.of(context).pop(),
-                  semanticLabel: '홈으로',
-                  child: AppSymbol(size: 22, color: context.tvTextMid),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) ref.read(verseAudioProvider.notifier).stop();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top bar — animates title as page changes
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: TVTopBar(
+                  key: ValueKey(_currentPage),
+                  leading: TVGhostButton(
+                    onTap: () => Navigator.of(context).pop(),
+                    semanticLabel: '홈으로',
+                    child: AppSymbol(size: 22, color: context.tvTextMid),
+                  ),
+                  subtitle: _topBarSubtitle(_currentPage),
+                  title: _topBarTitle(_currentPage),
+                  trailing: TTSPill(
+                    playing: audioState.isPlaying,
+                    loading: audioState.isLoading,
+                    enabled: isTtsEnabled && _currentPageAudioUrl(verse) != null,
+                    duration: '',
+                    onToggle: () {
+                      final url = _currentPageAudioUrl(verse);
+                      if (url != null) {
+                        ref.read(verseAudioProvider.notifier).toggle(url);
+                      }
+                    },
+                  ),
                 ),
-                subtitle: _topBarSubtitle(_currentPage),
-                title: _topBarTitle(_currentPage),
-                trailing: TTSPill(
-                  playing: audioState.isPlaying,
-                  loading: audioState.isLoading,
-                  enabled: isTtsEnabled && _currentPageAudioUrl(verse) != null,
-                  duration: '',
-                  onToggle: () {
-                    final url = _currentPageAudioUrl(verse);
-                    if (url != null) {
-                      ref.read(verseAudioProvider.notifier).toggle(url);
-                    }
+              ),
+
+              // PageView
+              Expanded(
+                child: PageView(
+                  controller: _pageCtrl,
+                  onPageChanged: (i) async {
+                    setState(() => _currentPage = i);
+                    await ref.read(verseAudioProvider.notifier).stop();
+                    if (!mounted) return;
+                    _playPageAudio(verse, i);
                   },
-                ),
-              ),
-            ),
-
-            // PageView
-            Expanded(
-              child: PageView(
-                controller: _pageCtrl,
-                onPageChanged: (i) {
-                  setState(() => _currentPage = i);
-                  ref.read(verseAudioProvider.notifier).stop();
-                  _playPageAudio(verse, i);
-                },
-                children: [
-                  BookDescriptionPage(
-                    bookName: verse.book,
-                    bookDescription: verse.bookDescription,
-                    onSwipeToVerse: () => _pageCtrl.animateToPage(
-                      1,
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.easeInOut,
+                  children: [
+                    BookDescriptionPage(
+                      bookName: verse.book,
+                      bookDescription: verse.bookDescription,
+                      onSwipeToVerse: () => _pageCtrl.animateToPage(
+                        1,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeInOut,
+                      ),
                     ),
-                  ),
-                  VersePage(verse: verse),
-                ],
-              ),
-            ),
-
-            // Page dots
-            TVPageDots(count: 2, active: _currentPage),
-
-            // Settings shortcut — small icon at bottom right
-            Padding(
-              padding: const EdgeInsets.only(right: 16, bottom: 8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TVGhostButton(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  ),
-                  semanticLabel: '설정',
-                  child: Icon(Icons.tune_rounded, size: 18, color: context.tvTextLo),
+                    VersePage(verse: verse),
+                  ],
                 ),
               ),
-            ),
-          ],
+
+              // Page dots
+              TVPageDots(count: 2, active: _currentPage),
+
+              // Settings shortcut — small icon at bottom right
+              Padding(
+                padding: const EdgeInsets.only(right: 16, bottom: 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TVGhostButton(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
+                    semanticLabel: '설정',
+                    child: Icon(Icons.tune_rounded, size: 18, color: context.tvTextLo),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

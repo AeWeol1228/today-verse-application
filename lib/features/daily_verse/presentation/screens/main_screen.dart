@@ -1,24 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_symbol.dart';
-import '../../../../core/widgets/cathedral_painter.dart';
-import '../../../../features/settings/presentation/providers/settings_provider.dart';
 import '../../../../features/settings/presentation/screens/settings_screen.dart';
 import 'daily_verse_screen.dart';
 import 'history_screen.dart';
 
-class MainScreen extends ConsumerWidget {
+class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-    final brightness = MediaQuery.platformBrightnessOf(context);
-    final isDark = themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system && brightness == Brightness.dark);
-
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -50,14 +42,58 @@ class MainScreen extends ConsumerWidget {
               ),
             ),
 
-            // Cathedral illustration — fills remaining space
+            // Church illustration — fills remaining space
             Expanded(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: CathedralStipple(
-                    width: MediaQuery.of(context).size.width - 48,
-                    color: isDark ? AppColors.darkTextHi : AppColors.lightTextHi,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: context.tvLineStrong, width: 1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: ShaderMask(
+                        shaderCallback: (rect) => const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.white,
+                            Colors.white,
+                            Colors.transparent,
+                          ],
+                          stops: [0.0, 0.13, 0.87, 1.0],
+                        ).createShader(rect),
+                        blendMode: BlendMode.dstIn,
+                        child: ColorFiltered(
+                          // Light: white bg → ivory tint / Dark: invert + warm cream lines
+                          colorFilter: context.isDark
+                              ? const ColorFilter.matrix([
+                                  -0.925, 0, 0, 0, 236,
+                                  0, -0.882, 0, 0, 225,
+                                  0,      0, -0.792, 0, 202,
+                                  0,      0,  0,     1, 0,
+                                ])
+                              : const ColorFilter.matrix([
+                                  0.980, 0, 0, 0, 0,
+                                  0, 0.969, 0, 0, 0,
+                                  0,     0, 0.949, 0, 0,
+                                  0,     0, 0,     1, 0,
+                                ]),
+                          child: Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.diagonal3Values(-1, 1, 1),
+                            child: Image.asset(
+                              'assets/church_img.png',
+                              fit: BoxFit.contain,
+                              width: MediaQuery.of(context).size.width - 48,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
