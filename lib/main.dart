@@ -26,7 +26,7 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
-      title: '오늘의 구절',
+      title: '오늘 한 절',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

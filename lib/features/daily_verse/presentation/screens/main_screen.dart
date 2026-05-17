@@ -92,7 +92,7 @@ class MainScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '오늘의 구절',
+                    '오늘 한 절',
                     style: GoogleFonts.nanumMyeongjo(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
@@ -177,7 +177,7 @@ class MainScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          '오늘의 구절',
+                          '오늘 한 절',
                           style: GoogleFonts.nanumMyeongjo(
                             fontSize: 56, fontWeight: FontWeight.w800,
                             color: context.tvTextHi, letterSpacing: 0.04 * 56,

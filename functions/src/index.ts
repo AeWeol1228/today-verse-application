@@ -141,6 +141,16 @@ function buildGeminiPrompt(book: string, chapter: number, verse: number, verseEn
 `.trim();
 }
 
+function amplifyPcm(pcm: Buffer, gain: number): Buffer {
+  const out = Buffer.alloc(pcm.length);
+  for (let i = 0; i + 1 < pcm.length; i += 2) {
+    const sample = pcm.readInt16LE(i);
+    const amplified = Math.round(sample * gain);
+    out.writeInt16LE(Math.max(-32768, Math.min(32767, amplified)), i);
+  }
+  return out;
+}
+
 function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16): Buffer {
   const byteRate = sampleRate * channels * (bitDepth / 8);
   const blockAlign = channels * (bitDepth / 8);
@@ -161,10 +171,10 @@ function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16):
   return Buffer.concat([header, pcm]);
 }
 
-async function generateSingleAudio(apiKey: string, text: string, filename: string): Promise<string | undefined> {
+async function generateSingleAudio(apiKey: string, text: string, filename: string, stylePrompt: string): Promise<string | undefined> {
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요.\n\n${text}`;
+    const prompt = `${stylePrompt}\n\n${text}`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
@@ -182,7 +192,7 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
     const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!audioData) throw new Error("No audio data in response");
 
-    const wavBuffer = pcmToWav(Buffer.from(audioData, "base64"));
+    const wavBuffer = pcmToWav(amplifyPcm(Buffer.from(audioData, "base64"), 1.5));
     const bucket = admin.storage().bucket();
     const audioFile = bucket.file(`daily_voice/${filename}.wav`);
     await audioFile.save(wavBuffer, {
@@ -197,11 +207,17 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
   }
 }
 
+const STYLE_VERSE =
+  '자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요. 보통 속도로 읽어주세요.';
+
+const STYLE_DESCRIPTION =
+  '자연스럽고 따뜻하게 읽어주세요. 속도는 아주 빠르게 읽어주세요. 문장이 끝날 때마다 충분히 쉬어가며 읽어주세요.';
+
 async function generateAudio(apiKey: string, verseTts: string, bookDescription: string, today: string): Promise<{ audioUrlVerse?: string; audioUrlDescription?: string }> {
   const ts = Date.now();
   const [audioUrlVerse, audioUrlDescription] = await Promise.all([
-    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`),
-    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`),
+    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`, STYLE_VERSE),
+    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`, STYLE_DESCRIPTION),
   ]);
   return { audioUrlVerse, audioUrlDescription };
 }

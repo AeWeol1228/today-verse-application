@@ -344,7 +344,7 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        verse.reference,
+                                        '${verse.book} ${verse.chapter}장',
                                         style: GoogleFonts.nanumMyeongjo(
                                           fontSize: 42, fontWeight: FontWeight.w800,
                                           height: 1.1, color: context.tvTextHi,

@@ -109,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
                     child: Column(
                       children: [
                         Text(
-                          '오늘의 구절',
+                          '오늘 한 절',
                           style: GoogleFonts.cormorantGaramond(
                             fontSize: 14, fontStyle: FontStyle.italic,
                             color: context.tvTextLo, letterSpacing: 0.4,

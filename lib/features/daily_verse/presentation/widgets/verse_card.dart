@@ -40,7 +40,7 @@ class VersePage extends StatelessWidget {
 
             // H1: reference — NanumMyeongjo 42px ExtraBold
             Text(
-              verse.reference,
+              '${verse.book} ${verse.chapter}장',
               style: GoogleFonts.nanumMyeongjo(
                 fontSize: 42,
                 fontWeight: FontWeight.w800,
