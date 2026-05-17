@@ -20,7 +20,7 @@ class TVTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: Row(
         children: [
           leading,
@@ -119,8 +119,8 @@ class TTSPill extends StatelessWidget {
       onTap: enabled ? onToggle : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: context.tvBg2,
           border: Border.all(color: context.tvLine),
@@ -133,7 +133,7 @@ class TTSPill extends StatelessWidget {
               loading
                   ? Icons.hourglass_empty_rounded
                   : (playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
-              size: 32,
+              size: 16,
               color: (playing || loading) ? context.tvGold : context.tvTextMid,
             ),
             if (duration.isNotEmpty) ...[
@@ -182,7 +182,7 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
-    const heights = [12.0, 22.0, 16.0, 26.0, 14.0];
+    const heights = [6.0, 11.0, 8.0, 13.0, 7.0];
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) => Row(
@@ -192,15 +192,74 @@ class _WaveformState extends State<_Waveform> with SingleTickerProviderStateMixi
           final phase = (_ctrl.value + i * 0.12) % 1.0;
           final scale = 0.4 + 0.6 * (0.5 - 0.5 * (phase < 0.5 ? phase * 2 - 1 : 1 - (phase - 0.5) * 2)).abs();
           return Container(
-            width: 4,
+            width: 2,
             height: heights[i] * scale,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
+            margin: const EdgeInsets.symmetric(horizontal: 1),
             decoration: BoxDecoration(
               color: widget.color,
               borderRadius: BorderRadius.circular(1),
             ),
           );
         }),
+      ),
+    );
+  }
+}
+
+// Floating TTS button — bottom-right overlay inside verse experience
+class FloatingTTSButton extends StatelessWidget {
+  final bool playing;
+  final bool loading;
+  final VoidCallback? onToggle;
+
+  const FloatingTTSButton({
+    super.key,
+    required this.playing,
+    this.loading = false,
+    this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 44,
+        padding: const EdgeInsets.only(left: 12, right: 16),
+        decoration: BoxDecoration(
+          color: context.tvBg2,
+          border: Border.all(color: context.tvLineStrong),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              loading
+                  ? Icons.hourglass_empty_rounded
+                  : (playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+              size: 18,
+              color: (playing || loading) ? context.tvGold : context.tvTextMid,
+            ),
+            if (playing) ...[
+              const SizedBox(width: 6),
+              _Waveform(color: context.tvGold),
+            ],
+          ],
+        ),
       ),
     );
   }

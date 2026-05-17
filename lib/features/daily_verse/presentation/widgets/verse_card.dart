@@ -3,8 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/verse.dart';
 
-// Verse Page — Page 2 of the verse experience PageView.
-// Shows both verses together on one scrollable page.
 class VersePage extends StatelessWidget {
   final Verse verse;
 
@@ -22,93 +20,167 @@ class VersePage extends StatelessWidget {
     return Container(
       color: context.tvPaper,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(28, 20, 28, 32),
+        padding: const EdgeInsets.fromLTRB(28, 8, 28, 96),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Opening typographic quote — U+201C LEFT DOUBLE QUOTATION MARK
-            Text(
-              '“',
-              style: GoogleFonts.cormorantGaramond(
-                fontSize: 64,
-                fontStyle: FontStyle.italic,
-                color: context.tvGold,
-                height: 0.8,
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
-            // Reference
+            // Kicker
             Text(
-              verse.reference,
-              style: GoogleFonts.cormorantGaramond(
-                fontSize: 14,
-                color: context.tvGold,
-                letterSpacing: 1.7,
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // Verse lines with number column — full width, left-aligned
-            SizedBox(
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(lines.length, (i) {
-                  final num = i < verseNumbers.length
-                      ? verseNumbers[i]
-                      : verse.verseEnd;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          child: Text(
-                            '$num',
-                            style: GoogleFonts.cormorantGaramond(
-                              fontSize: 13,
-                              color: context.tvGold.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w600,
-                              height: 1.9,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            lines[i],
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ),
-            ),
-
-            // Closing typographic quote — U+201D RIGHT DOUBLE QUOTATION MARK
-            Text(
-              '”',
-              style: GoogleFonts.cormorantGaramond(
-                fontSize: 64,
-                fontStyle: FontStyle.italic,
-                color: context.tvGold,
-                height: 0.8,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Footer attribution
-            Text(
-              '개역개정 · KRV',
+              '${verse.book} · ${verse.chapter}:${verse.verse}–${verse.verseEnd}',
               style: GoogleFonts.cormorantGaramond(
                 fontSize: 12,
-                color: context.tvTextLo,
-                letterSpacing: 2.2,
+                fontStyle: FontStyle.italic,
+                color: context.tvGold,
+                letterSpacing: 1.9,
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // H1: reference — NanumMyeongjo 42px ExtraBold
+            Text(
+              verse.reference,
+              style: GoogleFonts.nanumMyeongjo(
+                fontSize: 42,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+                color: context.tvTextHi,
+                letterSpacing: 0.02 * 42,
+              ),
+            ),
+            const SizedBox(height: 4),
+
+            // Subtitle
+            Text(
+              "Today's verse",
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 20,
+                fontStyle: FontStyle.italic,
+                color: context.tvTextMid,
+                letterSpacing: 0.01 * 20,
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // Section divider — short gold · "The verse" · long line
+            Row(
+              children: [
+                Container(
+                  width: 18, height: 1,
+                  color: context.tvGoldSoft.withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'THE VERSE',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: context.tvTextLo,
+                    letterSpacing: 0.18 * 11,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(height: 1, color: context.tvLineStrong),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+
+            // Verse lines — number hangs outside left gutter (absolute),
+            // text first character aligns with H1 at x=28 from screen edge.
+            ...List.generate(lines.length, (i) {
+              final num = i < verseNumbers.length ? verseNumbers[i] : verse.verseEnd;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 22),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Verse text — starts at content x=0 (screen x=28), aligned with H1
+                    Text(
+                      lines[i],
+                      style: GoogleFonts.nanumMyeongjo(
+                        fontSize: 21,
+                        height: 1.9,
+                        fontWeight: FontWeight.w400,
+                        color: context.tvTextHi,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    // Number positioned in the left gutter: right edge 6px before text
+                    Positioned(
+                      left: -26, // 20px number width + 6px gap
+                      top: 4,
+                      child: SizedBox(
+                        width: 20,
+                        child: Text(
+                          '$num',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 12,
+                            color: context.tvGoldSoft,
+                            fontWeight: FontWeight.w600,
+                            height: 1.9,
+                            letterSpacing: 0.04 * 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            // Ornament ✣
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 32, height: 1,
+                  color: context.tvGoldSoft.withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '✣',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: context.tvGoldSoft,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 32, height: 1,
+                  color: context.tvGoldSoft.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Attribution
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    '· 개역개정 ·',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: context.tvTextLo,
+                      letterSpacing: 0.04 * 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'KOREAN REVISED VERSION',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 11,
+                      color: context.tvTextLo.withValues(alpha: 0.7),
+                      letterSpacing: 0.22 * 11,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),

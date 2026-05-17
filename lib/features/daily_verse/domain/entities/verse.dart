@@ -5,6 +5,7 @@ class Verse {
   final int verseEnd;
   final String verseText;
   final String bookDescription;
+  final String? bookEn;
   final String? audioUrlVerse;
   final String? audioUrlDescription;
   final String? dateKey; // YYYY-MM-DD; set for history entries
@@ -16,6 +17,7 @@ class Verse {
     required this.verseEnd,
     required this.verseText,
     required this.bookDescription,
+    this.bookEn,
     this.audioUrlVerse,
     this.audioUrlDescription,
     this.dateKey,

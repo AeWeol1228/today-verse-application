@@ -180,8 +180,8 @@ class _HistoryCardState extends State<_HistoryCard> {
   String get _weekday {
     try {
       final d = DateTime.parse(widget.verse.dateKey!);
-      const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-      return days[d.weekday - 1];
+      const days = ['월', '화', '수', '목', '금', '토', '일'];
+      return '${days[d.weekday - 1]}요일';
     } catch (_) {
       return '';
     }

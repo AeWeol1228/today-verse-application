@@ -28,6 +28,23 @@ const BIBLE_BOOKS = [
   "요한일서", "요한이서", "요한삼서", "유다서", "요한계시록",
 ];
 
+const BIBLE_BOOKS_EN = [
+  "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
+  "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra",
+  "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
+  "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations",
+  "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+  "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk",
+  "Zephaniah", "Haggai", "Zechariah", "Malachi",
+  "Matthew", "Mark", "Luke", "John", "Acts",
+  "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
+  "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians",
+  "1 Timothy", "2 Timothy", "Titus", "Philemon",
+  "Hebrews", "James", "1 Peter", "2 Peter",
+  "1 John", "2 John", "3 John", "Jude", "Revelation",
+];
+
 // 각 책의 장 수 (BIBLE_BOOKS 순서와 동일)
 const CHAPTER_COUNTS = [
   50, 40, 27, 36, 34,  // 창세기-신명기
@@ -98,7 +115,7 @@ function filterExcludedVerses(book: string, chapter: number, verses: BollsVerse[
   return verses.filter((v) => v.verse < start || v.verse > end);
 }
 
-async function selectVerses(): Promise<{ book: string; chapter: number; verses: BollsVerse[] }> {
+async function selectVerses(): Promise<{ book: string; bookEn: string; chapter: number; verses: BollsVerse[] }> {
   for (let attempt = 0; attempt < 10; attempt++) {
     const bookIndex = Math.floor(Math.random() * BIBLE_BOOKS.length);
     const availableChapters = getAvailableChapters(bookIndex);
@@ -108,7 +125,7 @@ async function selectVerses(): Promise<{ book: string; chapter: number; verses: 
     const allVerses = await fetchChapterVerses(bookIndex + 1, chapter);
     const verses = filterExcludedVerses(BIBLE_BOOKS[bookIndex], chapter, allVerses);
 
-    if (verses.length >= 2) return { book: BIBLE_BOOKS[bookIndex], chapter, verses };
+    if (verses.length >= 2) return { book: BIBLE_BOOKS[bookIndex], bookEn: BIBLE_BOOKS_EN[bookIndex], chapter, verses };
   }
   throw new Error("유효한 구절 선택 실패 (10회 시도)");
 }
@@ -201,7 +218,7 @@ export const generateDailyVerse = onSchedule(
     if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
     // 1-3. 제외 목록 적용 후 랜덤 책/장/절 선택
-    const { book, chapter, verses } = await selectVerses();
+    const { book, bookEn, chapter, verses } = await selectVerses();
     const startIdx = Math.floor(Math.random() * (verses.length - 1));
     const v1 = verses[startIdx];
     const v2 = verses[startIdx + 1];
@@ -237,6 +254,7 @@ export const generateDailyVerse = onSchedule(
     // 6. Firestore 저장 (verse_text는 bolls.life 원문)
     await admin.firestore().collection("daily_verses").doc(today).set({
       book,
+      book_en: bookEn,
       chapter,
       verse,
       verse_end: verseEnd,

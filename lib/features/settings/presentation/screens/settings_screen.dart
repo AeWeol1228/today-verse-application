@@ -100,13 +100,6 @@ class SettingsScreen extends ConsumerWidget {
                         mode: LaunchMode.externalApplication,
                       ),
                     ),
-                    _Divider(),
-                    _LinkRow(
-                      icon: Icons.north_east_rounded,
-                      title: '피드백 보내기',
-                      sub: '조용히 듣고 있어요',
-                      onTap: () {},
-                    ),
                   ]),
 
                   const SizedBox(height: 28),

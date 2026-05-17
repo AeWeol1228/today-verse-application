@@ -19,17 +19,27 @@ class VerseAudioState {
 class VerseAudioNotifier extends StateNotifier<VerseAudioState> {
   final AudioPlayer _player = AudioPlayer();
   double _volume = 1.0;
+  List<String> _queue = [];
+  String? _currentUrl; // 현재 재생 중인 URL (UI 반영 불필요 → state 외부)
 
   VerseAudioNotifier() : super(const VerseAudioState()) {
     _player.playerStateStream.listen((ps) {
       if (ps.processingState == ProcessingState.completed) {
-        _player.stop();
         state = const VerseAudioState();
+        if (_queue.isNotEmpty) {
+          _playNext();
+        } else {
+          _currentUrl = null;
+          _player.stop();
+        }
       } else if (ps.playing) {
         state = const VerseAudioState(isPlaying: true);
       }
     });
   }
+
+  /// 현재 재생 중인 오디오 URL. 전환 판단에 사용.
+  String? get currentPlayingUrl => _currentUrl;
 
   Future<void> setVolume(double volume) async {
     _volume = volume;
@@ -37,8 +47,18 @@ class VerseAudioNotifier extends StateNotifier<VerseAudioState> {
   }
 
   Future<void> stop() async {
+    _queue.clear();
+    _currentUrl = null;
     await _player.stop();
     state = const VerseAudioState();
+  }
+
+  /// 큐만 비움 (재생은 유지). fold→normal 전환 시 사용.
+  void clearQueue() => _queue.clear();
+
+  /// 큐가 비어있을 때만 URL 추가. normal→fold 전환 시 사용.
+  void enqueueIfEmpty(String url) {
+    if (_queue.isEmpty) _queue.add(url);
   }
 
   Future<void> toggle(String audioUrl) async {
@@ -49,17 +69,41 @@ class VerseAudioNotifier extends StateNotifier<VerseAudioState> {
     }
   }
 
+  /// 여러 URL을 순서대로 재생. fold 모드 TTS 버튼에서 사용.
+  Future<void> toggleSequence(List<String> urls) async {
+    if (state.isPlaying || state.isLoading) {
+      await stop();
+    } else {
+      await _playSequence(urls);
+    }
+  }
+
+  Future<void> _playSequence(List<String> urls) async {
+    if (urls.isEmpty) return;
+    _queue = urls.sublist(1).toList();
+    await playOnce(urls.first);
+  }
+
+  Future<void> _playNext() async {
+    if (_queue.isEmpty) return;
+    final url = _queue.removeAt(0);
+    await playOnce(url);
+  }
+
   Future<void> playOnce(String audioUrl) async {
     if (state.isLoading || state.isPlaying) return;
 
+    _currentUrl = audioUrl;
     state = const VerseAudioState(isLoading: true);
 
     try {
       final path = await _getLocalPath(audioUrl);
       await _player.setVolume(_volume);
       await _player.setFilePath(path);
-      await _player.play(); // isPlaying: true는 playerStateStream 리스너에서 세팅
+      await _player.play();
     } catch (_) {
+      _queue.clear();
+      _currentUrl = null;
       state = const VerseAudioState(hasError: true);
     }
   }

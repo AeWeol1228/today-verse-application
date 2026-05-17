@@ -9,8 +9,14 @@ import 'history_screen.dart';
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
+  static bool _isFold(BuildContext context) =>
+      MediaQuery.of(context).size.shortestSide > 600;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      _isFold(context) ? _buildFold(context) : _buildNormal(context);
+
+  Widget _buildNormal(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -42,58 +48,29 @@ class MainScreen extends StatelessWidget {
               ),
             ),
 
-            // Church illustration — fills remaining space
+            // Church illustration — height-aware sizing for small screens (e.g. iPhone SE)
             Expanded(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: context.tvLineStrong, width: 1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: ShaderMask(
-                        shaderCallback: (rect) => const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.white,
-                            Colors.white,
-                            Colors.transparent,
-                          ],
-                          stops: [0.0, 0.13, 0.87, 1.0],
-                        ).createShader(rect),
-                        blendMode: BlendMode.dstIn,
-                        child: ColorFiltered(
-                          // Light: white bg → ivory tint / Dark: invert + warm cream lines
-                          colorFilter: context.isDark
-                              ? const ColorFilter.matrix([
-                                  -0.925, 0, 0, 0, 236,
-                                  0, -0.882, 0, 0, 225,
-                                  0,      0, -0.792, 0, 202,
-                                  0,      0,  0,     1, 0,
-                                ])
-                              : const ColorFilter.matrix([
-                                  0.980, 0, 0, 0, 0,
-                                  0, 0.969, 0, 0, 0,
-                                  0,     0, 0.949, 0, 0,
-                                  0,     0, 0,     1, 0,
-                                ]),
-                          child: Transform(
-                            alignment: Alignment.center,
-                            transform: Matrix4.diagonal3Values(-1, 1, 1),
-                            child: Image.asset(
-                              'assets/church_img.png',
-                              fit: BoxFit.contain,
-                              width: MediaQuery.of(context).size.width - 48,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const framePad = 20.0; // 10px × 2
+                      const imgAspect = 5.0 / 7.0; // church_img w/h ratio
+
+                      final naturalImgW = constraints.maxWidth - framePad;
+                      final naturalFrameH = naturalImgW / imgAspect + framePad;
+
+                      // Normal screens: width-constrained, image fits vertically
+                      if (naturalFrameH <= constraints.maxHeight) {
+                        return _churchImage(context, width: naturalImgW);
+                      }
+
+                      // Small screens (iPhone SE): scale down to fit height
+                      final scaledImgW =
+                          (constraints.maxHeight - framePad) * imgAspect;
+                      return _churchImage(context, width: scaledImgW);
+                    },
                   ),
                 ),
               ),
@@ -161,6 +138,156 @@ class MainScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildFold(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left page — church image
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(56, 20, 24, 20),
+                      child: LayoutBuilder(
+                        builder: (context, c) => _churchImage(context, width: c.maxWidth),
+                      ),
+                    ),
+                  ),
+                ),
+                // Right page — wordmark + buttons
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(left: BorderSide(color: context.tvLine)),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(36, 20, 64, 20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_weekdayString()} · ${_dateLongString()}',
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 14, fontStyle: FontStyle.italic,
+                            color: context.tvGold, letterSpacing: 0.18 * 14,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          '오늘의 구절',
+                          style: GoogleFonts.nanumMyeongjo(
+                            fontSize: 56, fontWeight: FontWeight.w800,
+                            color: context.tvTextHi, letterSpacing: 0.04 * 56,
+                            height: 1.05,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Today's Verse",
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 18, fontStyle: FontStyle.italic,
+                            color: context.tvTextMid, letterSpacing: 0.04 * 18,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: Text(
+                            '아침에 커피 한 잔처럼, 짧고 깊게 한 구절을 마주합니다.',
+                            style: GoogleFonts.notoSansKr(
+                              fontSize: 14, height: 1.7,
+                              color: context.tvTextMid,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 38),
+                        // Buttons — centered within right page
+                        Align(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _GhostButton(
+                                icon: const Icon(Icons.history_rounded, size: 26),
+                                onTap: () => _push(context, const HistoryScreen()),
+                              ),
+                              const SizedBox(width: 22),
+                              _PrimaryButton(
+                                child: AppSymbol(size: 28, color: context.tvGold),
+                                onTap: () => _pushFade(context, const DailyVerseScreen()),
+                              ),
+                              const SizedBox(width: 22),
+                              _GhostButton(
+                                icon: const Icon(Icons.tune_rounded, size: 26),
+                                onTap: () => _push(context, const SettingsScreen()),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Center spine shadow
+            IgnorePointer(
+              child: Positioned.fill(
+                child: Center(
+                  child: Container(
+                    width: 14,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Colors.transparent,
+                          context.isDark
+                              ? Colors.black.withValues(alpha: 0.45)
+                              : const Color(0x12462D0F),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _churchImage(BuildContext context, {double? width}) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAF7F2),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFFB58A2A))),
+        borderRadius: BorderRadius.all(Radius.circular(3)),
+        boxShadow: [
+          BoxShadow(color: Color(0x2E462D0F), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x29462D0F), blurRadius: 22, offset: Offset(0, 10)),
+        ],
+      ),
+      child: Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.diagonal3Values(-1, 1, 1),
+        child: Image.asset(
+          'assets/church_img.png',
+          width: width,
+          fit: BoxFit.contain,
+          color: const Color(0xFFFAF7F2),
+          colorBlendMode: BlendMode.multiply,
+        ),
+      ),
+    );
+  }
+
   void _push(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
@@ -196,29 +323,91 @@ class _GhostButton extends StatefulWidget {
   State<_GhostButton> createState() => _GhostButtonState();
 }
 
-class _GhostButtonState extends State<_GhostButton> {
-  bool _hovered = false;
+class _GhostButtonState extends State<_GhostButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _rippleCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _rippleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+      value: 1.0, // starts completed → ring/flash invisible
+    );
+  }
+
+  @override
+  void dispose() {
+    _rippleCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _rippleCtrl.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 360), () {
+      if (mounted) widget.onTap();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _hovered = true),
-      onTapUp: (_) => setState(() => _hovered = false),
-      onTapCancel: () => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: context.tvLine),
-          color: _hovered ? context.tvGoldBg : Colors.transparent,
-        ),
-        child: IconTheme(
-          data: IconThemeData(color: context.tvTextMid),
-          child: widget.icon,
-        ),
+      onTap: _handleTap,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // Gold ring ripple
+          AnimatedBuilder(
+            animation: _rippleCtrl,
+            builder: (context, _) {
+              final t = _rippleCtrl.value;
+              return Opacity(
+                opacity: (1.0 - t).clamp(0.0, 1.0),
+                child: Transform.scale(
+                  scale: 1.0 + t * 0.45,
+                  child: Container(
+                    width: 60, height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.tvGold, width: 2),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          // Inner gold flash
+          AnimatedBuilder(
+            animation: _rippleCtrl,
+            builder: (context, _) => Opacity(
+              opacity: (1.0 - _rippleCtrl.value).clamp(0.0, 1.0),
+              child: Container(
+                width: 60, height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.tvGoldBg,
+                ),
+              ),
+            ),
+          ),
+          // Button body
+          Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: context.tvLine),
+              color: Colors.transparent,
+            ),
+            child: Center(
+              child: IconTheme(
+                data: IconThemeData(color: context.tvTextMid),
+                child: widget.icon,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -233,34 +422,121 @@ class _PrimaryButton extends StatefulWidget {
   State<_PrimaryButton> createState() => _PrimaryButtonState();
 }
 
-class _PrimaryButtonState extends State<_PrimaryButton> {
+class _PrimaryButtonState extends State<_PrimaryButton>
+    with SingleTickerProviderStateMixin {
   bool _pressed = false;
+  late final AnimationController _rippleCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _rippleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+      value: 1.0, // starts completed → ring/flash invisible
+    );
+  }
+
+  @override
+  void dispose() {
+    _rippleCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _rippleCtrl.forward(from: 0);
+    setState(() => _pressed = true);
+    Future.delayed(const Duration(milliseconds: 360), () {
+      if (mounted) {
+        setState(() => _pressed = false);
+        widget.onTap(); // navigate after animation finishes
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        transform: Matrix4.translationValues(0, _pressed ? 1 : 0, 0),
-        width: 76,
-        height: 76,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: context.tvBg2,
-          border: Border.all(color: context.tvLineStrong),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: _pressed ? 0.04 : 0.10),
-              blurRadius: _pressed ? 14 : 28,
-              offset: const Offset(0, 12),
+      onTap: _handleTap,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // Gold ring ripple
+          AnimatedBuilder(
+            animation: _rippleCtrl,
+            builder: (context, _) {
+              final t = _rippleCtrl.value;
+              return Opacity(
+                opacity: (1.0 - t).clamp(0.0, 1.0),
+                child: Transform.scale(
+                  scale: 1.0 + t * 0.45,
+                  child: Container(
+                    width: 76, height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.tvGold, width: 2),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          // Inner gold flash
+          AnimatedBuilder(
+            animation: _rippleCtrl,
+            builder: (context, _) => Opacity(
+              opacity: (1.0 - _rippleCtrl.value).clamp(0.0, 1.0),
+              child: Container(
+                width: 76, height: 76,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.tvGoldBg,
+                ),
+              ),
             ),
-          ],
-        ),
-        child: Center(child: widget.child),
+          ),
+          // Main button
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            transform: Matrix4.translationValues(0, _pressed ? 1 : 0, 0),
+            width: 76, height: 76,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: context.tvBg2,
+              border: Border.all(color: context.tvLineStrong),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: _pressed ? 0.04 : 0.10),
+                  blurRadius: _pressed ? 14 : 28,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Center(child: widget.child),
+          ),
+          // Gold dot below — scales up on press
+          Positioned(
+            bottom: -10,
+            child: AnimatedOpacity(
+              opacity: _pressed ? 0.3 : 0.85,
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeOut,
+              child: AnimatedScale(
+                scale: _pressed ? 2.2 : 1.0,
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOut,
+                child: Container(
+                  width: 5, height: 5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: context.tvGold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
