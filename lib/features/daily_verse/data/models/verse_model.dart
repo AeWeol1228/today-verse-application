@@ -17,13 +17,13 @@ class VerseModel extends Verse {
   factory VerseModel.fromFirestore(Map<String, dynamic> data, {String? dateKey}) {
     return VerseModel(
       book: data['book'] as String,
-      chapter: data['chapter'] as int,
-      verse: data['verse'] as int,
-      verseEnd: data['verse_end'] as int,
+      chapter: (data['chapter'] as num).toInt(),
+      verse: (data['verse'] as num).toInt(),
+      verseEnd: (data['verse_end'] as num).toInt(),
       verseText: data['verse_text'] as String,
       bookDescription: data['book_description'] as String,
       bookEn: data['book_en'] as String?,
-      audioUrlVerse: data['audio_url_verse'] as String?,
+      audioUrlVerse: (data['audio_url_verse'] ?? data['audio_url']) as String?,
       audioUrlDescription: data['audio_url_description'] as String?,
       dateKey: dateKey,
     );

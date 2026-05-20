@@ -24,13 +24,18 @@ class VerseRepository {
   Future<List<VerseModel>> getRecentVerses({int limit = 30}) async {
     final snap = await _firestore
         .collection('daily_verses')
-        .orderBy(FieldPath.documentId, descending: true)
-        .limit(limit)
         .get();
-    return snap.docs
-        .where((d) => d.data().isNotEmpty)
-        .map((d) => VerseModel.fromFirestore(d.data(), dateKey: d.id))
-        .toList();
+    final result = <VerseModel>[];
+    for (final d in snap.docs) {
+      if (d.data().isEmpty) continue;
+      try {
+        result.add(VerseModel.fromFirestore(d.data(), dateKey: d.id));
+      } catch (e) {
+        // ignore malformed documents
+      }
+    }
+    result.sort((a, b) => (b.dateKey ?? '').compareTo(a.dateKey ?? ''));
+    return result.take(limit).toList();
   }
 
   String _dateKey(DateTime date) =>

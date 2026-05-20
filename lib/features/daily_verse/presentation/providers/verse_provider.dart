@@ -9,5 +9,5 @@ final todayVerseProvider = FutureProvider<VerseModel?>((ref) {
 });
 
 final historyVersesProvider = FutureProvider<List<VerseModel>>((ref) {
-  return ref.watch(verseRepositoryProvider).getRecentVerses(limit: 60);
+  return ref.watch(verseRepositoryProvider).getRecentVerses(limit: 14);
 });

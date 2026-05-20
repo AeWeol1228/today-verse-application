@@ -6,6 +6,7 @@ import '../providers/settings_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_symbol.dart';
 import '../../../../core/widgets/top_bar.dart';
+import '../../../daily_verse/presentation/providers/verse_audio_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -73,8 +74,25 @@ class SettingsScreen extends ConsumerWidget {
                     _VolumeRow(
                       volume: ttsVolume,
                       enabled: isTtsEnabled,
-                      onChanged: (v) =>
-                          ref.read(ttsVolumeProvider.notifier).setVolume(v),
+                      onChanged: (v) {
+                        ref.read(ttsVolumeProvider.notifier).setVolume(v);
+                        final isPlaying = ref.read(verseAudioProvider).isPlaying;
+                        if (!isPlaying) {
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(
+                              content: Text(
+                                '오늘의 구절 화면에서 음성을 재생한 뒤 조절하면 바로 반영됩니다',
+                                style: GoogleFonts.notoSansKr(fontSize: 13),
+                              ),
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ));
+                        }
+                      },
                     ),
                   ]),
 
