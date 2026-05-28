@@ -112,11 +112,9 @@ class SettingsScreen extends ConsumerWidget {
                     _LinkRow(
                       icon: Icons.favorite_rounded,
                       title: '개발자에게 커피 한 잔',
-                      sub: '이 앱을 만든 사람을 응원합니다',
-                      onTap: () => launchUrl(
-                        Uri.parse('https://qr.kakaopay.com/FXAHety7o'),
-                        mode: LaunchMode.externalApplication,
-                      ),
+                      sub: '준비 중입니다',
+                      enabled: false,
+                      onTap: () {},
                     ),
                   ]),
 
@@ -407,48 +405,54 @@ class _LinkRow extends StatelessWidget {
   final String title;
   final String? sub;
   final VoidCallback onTap;
+  final bool enabled;
 
   const _LinkRow({
     required this.icon,
     required this.title,
     this.sub,
     required this.onTap,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: context.tvGoldBg,
-                borderRadius: BorderRadius.circular(10),
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.38,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: context.tvGoldBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: context.tvGold),
               ),
-              child: Icon(icon, size: 18, color: context.tvGold),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.bodyLarge),
-                  if (sub != null) ...[
-                    const SizedBox(height: 2),
-                    Text(sub!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 12, color: context.tvTextMid,
-                        )),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.bodyLarge),
+                    if (sub != null) ...[
+                      const SizedBox(height: 2),
+                      Text(sub!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 12, color: context.tvTextMid,
+                          )),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 18, color: context.tvTextLo),
-          ],
+              if (enabled)
+                Icon(Icons.chevron_right_rounded, size: 18, color: context.tvTextLo),
+            ],
+          ),
         ),
       ),
     );

@@ -172,11 +172,11 @@ function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16):
 }
 
 async function generateSingleAudio(apiKey: string, text: string, filename: string, stylePrompt: string): Promise<string | undefined> {
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `${stylePrompt}\n\n${text}`;
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `${stylePrompt}\n\n${text}`;
 
-    const response = await ai.models.generateContent({
+  const attemptTts = () => {
+    const ttsCall = ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
       contents: [{ parts: [{ text: prompt }] }],
       config: {
@@ -188,6 +188,21 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
         },
       },
     });
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`TTS timeout (${filename})`)), 90_000)
+    );
+    return Promise.race([ttsCall, timeout]);
+  };
+
+  try {
+    let response;
+    try {
+      response = await attemptTts();
+    } catch (e1) {
+      console.warn(`TTS 1차 실패, 15초 후 재시도 (${filename}):`, e1);
+      await new Promise(r => setTimeout(r, 15_000));
+      response = await attemptTts();
+    }
 
     const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!audioData) throw new Error("No audio data in response");
@@ -202,7 +217,7 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
     await audioFile.makePublic();
     return audioFile.publicUrl();
   } catch (e) {
-    console.error(`TTS generation failed (${filename}):`, e);
+    console.error(`TTS 최종 실패 (${filename}):`, e);
     return undefined;
   }
 }
@@ -233,6 +248,25 @@ export const generateDailyVerse = onSchedule(
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
+    const today = todayKey();
+
+    // 오늘 문서가 이미 있으면 TTS만 재생성 (구절 변경 없음)
+    const existingDoc = await admin.firestore().collection("daily_verses").doc(today).get();
+    const existingData = existingDoc.data();
+    if (existingDoc.exists && existingData?.verse_text) {
+      console.log("오늘 문서 존재 — TTS만 재생성");
+      const verseTts = existingData.verse_text_tts ?? existingData.verse_text;
+      const { audioUrlVerse, audioUrlDescription } = await generateAudio(
+        apiKey, verseTts, existingData.book_description, today
+      );
+      await admin.firestore().collection("daily_verses").doc(today).update({
+        ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
+        ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
+      });
+      console.log("TTS 재생성 완료");
+      return;
+    }
+
     // 1-3. 제외 목록 적용 후 랜덤 책/장/절 선택
     const { book, bookEn, chapter, verses } = await selectVerses();
     const startIdx = Math.floor(Math.random() * (verses.length - 1));
@@ -258,16 +292,28 @@ export const generateDailyVerse = onSchedule(
         },
       },
     });
-    const result = await model.generateContent(buildGeminiPrompt(book, chapter, verse, verseEnd, verseText));
+    const attemptGemini = () => Promise.race([
+      model.generateContent(buildGeminiPrompt(book, chapter, verse, verseEnd, verseText)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Gemini content timeout")), 60_000)
+      ),
+    ]);
+    let result;
+    try {
+      result = await attemptGemini();
+    } catch (e1) {
+      console.warn("Gemini content 1차 실패, 10초 후 재시도:", e1);
+      await new Promise(r => setTimeout(r, 10_000));
+      result = await attemptGemini(); // 재시도 실패 시 함수 전체 에러
+    }
     const geminiData = JSON.parse(result.response.text());
 
     // 5. TTS 생성 — 구절/책설명 병렬 2개
-    const today = todayKey();
     const { audioUrlVerse, audioUrlDescription } = await generateAudio(
       apiKey, geminiData.verse_text_tts, geminiData.book_description, today
     );
 
-    // 6. Firestore 저장 (verse_text는 bolls.life 원문)
+    // 6. Firestore 저장 (verse_text는 bolls.life 원문, verse_text_tts는 TTS 재생성용)
     await admin.firestore().collection("daily_verses").doc(today).set({
       book,
       book_en: bookEn,
@@ -275,18 +321,23 @@ export const generateDailyVerse = onSchedule(
       verse,
       verse_end: verseEnd,
       verse_text: verseText,
+      verse_text_tts: geminiData.verse_text_tts,
       book_description: geminiData.book_description.replace(/\\n/g, '\n'),
       ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
       ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
       generated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 7. FCM 발송
+    // 7. FCM 발송 — 구절 내용 없이 알림 제목만 전달
     await admin.messaging().send({
       topic: "daily_verse",
       notification: {
-        title: `${book} ${chapter}:${verse}`,
-        body: v1.text,
+        title: "오늘의 구절이 도착했습니다",
+        body: "앱을 열어 오늘의 말씀을 확인하세요",
+      },
+      data: {
+        type: "daily_verse",
+        date: today,
       },
     });
   }
