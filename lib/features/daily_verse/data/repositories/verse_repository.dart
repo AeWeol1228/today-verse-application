@@ -25,8 +25,10 @@ class VerseRepository {
     final snap = await _firestore
         .collection('daily_verses')
         .get();
+    final today = _dateKey(DateTime.now());
     final result = <VerseModel>[];
     for (final d in snap.docs) {
+      if (d.id.compareTo(today) > 0) continue;
       if (d.data().isEmpty) continue;
       try {
         result.add(VerseModel.fromFirestore(d.data(), dateKey: d.id));

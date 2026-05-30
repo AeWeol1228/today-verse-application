@@ -125,7 +125,7 @@ async function selectVerses(): Promise<{ book: string; bookEn: string; chapter: 
     const allVerses = await fetchChapterVerses(bookIndex + 1, chapter);
     const verses = filterExcludedVerses(BIBLE_BOOKS[bookIndex], chapter, allVerses);
 
-    if (verses.length >= 2) return { book: BIBLE_BOOKS[bookIndex], bookEn: BIBLE_BOOKS_EN[bookIndex], chapter, verses };
+    if (verses.length >= 3) return { book: BIBLE_BOOKS[bookIndex], bookEn: BIBLE_BOOKS_EN[bookIndex], chapter, verses };
   }
   throw new Error("유효한 구절 선택 실패 (10회 시도)");
 }
@@ -194,32 +194,36 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
     return Promise.race([ttsCall, timeout]);
   };
 
-  try {
-    let response;
+  const retryDelays = [30_000]; // 2회 시도 (1차 + 재시도 1회)
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
     try {
-      response = await attemptTts();
-    } catch (e1) {
-      console.warn(`TTS 1차 실패, 15초 후 재시도 (${filename}):`, e1);
-      await new Promise(r => setTimeout(r, 15_000));
-      response = await attemptTts();
+      const response = await attemptTts();
+      const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (!audioData) {
+        const reason = response.candidates?.[0]?.finishReason;
+        throw new Error(`No audio data (finishReason: ${reason})`);
+      }
+      const wavBuffer = pcmToWav(amplifyPcm(Buffer.from(audioData, "base64"), 1.5));
+      const bucket = admin.storage().bucket();
+      const audioFile = bucket.file(`daily_voice/${filename}.wav`);
+      await audioFile.save(wavBuffer, {
+        contentType: "audio/wav",
+        metadata: { cacheControl: "no-cache, no-store" },
+      });
+      await audioFile.makePublic();
+      return audioFile.publicUrl();
+    } catch (e) {
+      lastError = e;
+      if (attempt < retryDelays.length) {
+        const delay = retryDelays[attempt];
+        console.warn(`TTS ${attempt + 1}차 실패, ${delay / 1000}초 후 재시도 (${filename}):`, e);
+        await new Promise(r => setTimeout(r, delay));
+      }
     }
-
-    const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!audioData) throw new Error("No audio data in response");
-
-    const wavBuffer = pcmToWav(amplifyPcm(Buffer.from(audioData, "base64"), 1.5));
-    const bucket = admin.storage().bucket();
-    const audioFile = bucket.file(`daily_voice/${filename}.wav`);
-    await audioFile.save(wavBuffer, {
-      contentType: "audio/wav",
-      metadata: { cacheControl: "no-cache, no-store" },
-    });
-    await audioFile.makePublic();
-    return audioFile.publicUrl();
-  } catch (e) {
-    console.error(`TTS 최종 실패 (${filename}):`, e);
-    return undefined;
   }
+  console.error(`TTS 최종 실패 (${filename}):`, lastError);
+  return undefined;
 }
 
 const STYLE_VERSE =
@@ -237,115 +241,153 @@ async function generateAudio(apiKey: string, verseTts: string, bookDescription: 
   return { audioUrlVerse, audioUrlDescription };
 }
 
-export const generateDailyVerse = onSchedule(
+function dateKey(daysAhead = 0): string {
+  const d = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(d);
+}
+
+async function generateForDate(apiKey: string, date: string): Promise<void> {
+  const { book, bookEn, chapter, verses } = await selectVerses();
+  const startIdx = Math.floor(Math.random() * (verses.length - 2));
+  const v1 = verses[startIdx];
+  const v2 = verses[startIdx + 1];
+  const v3 = verses[startIdx + 2];
+  const verse = v1.verse;
+  const verseEnd = v3.verse;
+  const verseText = `${v1.text}\n${v2.text}\n${v3.text}`;
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3-flash-preview",
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: SchemaType.OBJECT,
+        properties: {
+          verse_text_tts: { type: SchemaType.STRING },
+          book_description: { type: SchemaType.STRING },
+        },
+        required: ["verse_text_tts", "book_description"],
+      },
+    },
+  });
+  const attemptGemini = () => Promise.race([
+    model.generateContent(buildGeminiPrompt(book, chapter, verse, verseEnd, verseText)),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini content timeout")), 60_000)
+    ),
+  ]);
+  let result;
+  try {
+    result = await attemptGemini();
+  } catch (e1) {
+    console.warn(`${date}: Gemini 1차 실패, 10초 후 재시도:`, e1);
+    await new Promise(r => setTimeout(r, 10_000));
+    result = await attemptGemini();
+  }
+  const geminiData = JSON.parse(result.response.text());
+
+  const { audioUrlVerse, audioUrlDescription } = await generateAudio(
+    apiKey, geminiData.verse_text_tts, geminiData.book_description, date
+  );
+
+  await admin.firestore().collection("daily_verses").doc(date).set({
+    book,
+    book_en: bookEn,
+    chapter,
+    verse,
+    verse_end: verseEnd,
+    verse_text: verseText,
+    verse_text_tts: geminiData.verse_text_tts,
+    book_description: geminiData.book_description.replace(/\\n/g, '\n'),
+    ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
+    ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
+    generated_at: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  console.log(`${date}: 생성 완료 (TTS verse=${!!audioUrlVerse}, desc=${!!audioUrlDescription})`);
+}
+
+async function regenerateTTSForDate(apiKey: string, data: FirebaseFirestore.DocumentData, date: string): Promise<void> {
+  const verseTts = data.verse_text_tts ?? data.verse_text;
+  const { audioUrlVerse, audioUrlDescription } = await generateAudio(
+    apiKey, verseTts, data.book_description, date
+  );
+  const updateData = {
+    ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
+    ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
+  };
+  if (Object.keys(updateData).length === 0) {
+    console.error(`${date}: TTS 재생성 실패 — Gemini TTS 서버 에러`);
+    return;
+  }
+  await admin.firestore().collection("daily_verses").doc(date).update(updateData);
+  console.log(`${date}: TTS 재생성 완료`);
+}
+
+// 오전 2시 / 오후 2시 — 5일치 버퍼 유지
+export const fillBuffer = onSchedule(
   {
-    schedule: "0 10 * * *",
+    schedule: "0 2,14 * * *",
     timeZone: "Asia/Seoul",
     secrets: ["GEMINI_API_KEY"],
-    timeoutSeconds: 300,
+    timeoutSeconds: 540,
   },
   async () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
-    const today = todayKey();
+    for (let i = 0; i < 5; i++) {
+      const date = dateKey(i);
+      try {
+        const docSnap = await admin.firestore().collection("daily_verses").doc(date).get();
+        const data = docSnap.data();
 
-    // 오늘 문서가 이미 있으면 TTS만 재생성 (구절 변경 없음)
-    const existingDoc = await admin.firestore().collection("daily_verses").doc(today).get();
-    const existingData = existingDoc.data();
-    if (existingDoc.exists && existingData?.verse_text) {
-      console.log("오늘 문서 존재 — TTS만 재생성");
-      const verseTts = existingData.verse_text_tts ?? existingData.verse_text;
-      const { audioUrlVerse, audioUrlDescription } = await generateAudio(
-        apiKey, verseTts, existingData.book_description, today
-      );
-      await admin.firestore().collection("daily_verses").doc(today).update({
-        ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
-        ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
-      });
-      console.log("TTS 재생성 완료");
+        if (docSnap.exists && data?.audio_url_verse && data?.audio_url_description) {
+          console.log(`${date}: 완료, 스킵`);
+          continue;
+        }
+
+        if (docSnap.exists && data?.verse_text) {
+          console.log(`${date}: 구절 있음, TTS 재생성`);
+          await regenerateTTSForDate(apiKey, data, date);
+        } else {
+          console.log(`${date}: 신규 생성`);
+          await generateForDate(apiKey, date);
+        }
+      } catch (e) {
+        console.error(`${date}: 생성 실패 — 다음 실행에서 재시도`, e);
+      }
+
+      if (i < 4) await new Promise(r => setTimeout(r, 30_000)); // 날짜 간 30초 대기
+    }
+  }
+);
+
+// 오전 10시 — FCM 발송만
+export const sendDailyVerse = onSchedule(
+  {
+    schedule: "0 10 * * *",
+    timeZone: "Asia/Seoul",
+    timeoutSeconds: 60,
+  },
+  async () => {
+    const today = dateKey(0);
+    const doc = await admin.firestore().collection("daily_verses").doc(today).get();
+    if (!doc.exists) {
+      console.error(`오늘(${today}) 문서 없음 — 버퍼 소진`);
       return;
     }
-
-    // 1-3. 제외 목록 적용 후 랜덤 책/장/절 선택
-    const { book, bookEn, chapter, verses } = await selectVerses();
-    const startIdx = Math.floor(Math.random() * (verses.length - 1));
-    const v1 = verses[startIdx];
-    const v2 = verses[startIdx + 1];
-    const verse = v1.verse;
-    const verseEnd = v2.verse;
-    const verseText = `${v1.text}\n${v2.text}`;
-
-    // 4. Gemini: TTS용 구두점 추가 + 책 설명 생성
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview",
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            verse_text_tts: { type: SchemaType.STRING },
-            book_description: { type: SchemaType.STRING },
-          },
-          required: ["verse_text_tts", "book_description"],
-        },
-      },
-    });
-    const attemptGemini = () => Promise.race([
-      model.generateContent(buildGeminiPrompt(book, chapter, verse, verseEnd, verseText)),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Gemini content timeout")), 60_000)
-      ),
-    ]);
-    let result;
-    try {
-      result = await attemptGemini();
-    } catch (e1) {
-      console.warn("Gemini content 1차 실패, 10초 후 재시도:", e1);
-      await new Promise(r => setTimeout(r, 10_000));
-      result = await attemptGemini(); // 재시도 실패 시 함수 전체 에러
-    }
-    const geminiData = JSON.parse(result.response.text());
-
-    // 5. TTS 생성 — 구절/책설명 병렬 2개
-    const { audioUrlVerse, audioUrlDescription } = await generateAudio(
-      apiKey, geminiData.verse_text_tts, geminiData.book_description, today
-    );
-
-    // 6. Firestore 저장 (verse_text는 bolls.life 원문, verse_text_tts는 TTS 재생성용)
-    await admin.firestore().collection("daily_verses").doc(today).set({
-      book,
-      book_en: bookEn,
-      chapter,
-      verse,
-      verse_end: verseEnd,
-      verse_text: verseText,
-      verse_text_tts: geminiData.verse_text_tts,
-      book_description: geminiData.book_description.replace(/\\n/g, '\n'),
-      ...(audioUrlVerse       ? { audio_url_verse: audioUrlVerse }             : {}),
-      ...(audioUrlDescription ? { audio_url_description: audioUrlDescription } : {}),
-      generated_at: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // 7. FCM 발송 — 구절 내용 없이 알림 제목만 전달
     await admin.messaging().send({
       topic: "daily_verse",
       notification: {
         title: "오늘의 구절이 도착했습니다",
         body: "앱을 열어 오늘의 말씀을 확인하세요",
       },
-      data: {
-        type: "daily_verse",
-        date: today,
-      },
+      data: { type: "daily_verse", date: today },
     });
+    console.log(`FCM 발송 완료: ${today}`);
   }
 );
-
-function todayKey(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
-}
 
 export const stopBilling = onMessagePublished(
   { topic: "billing-alerts" },

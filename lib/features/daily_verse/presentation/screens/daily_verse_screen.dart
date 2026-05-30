@@ -192,9 +192,21 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
           );
         }
 
-        if (isTtsEnabled && verse.audioUrlDescription != null && !_autoPlayTriggered) {
+        if (isTtsEnabled && !_autoPlayTriggered) {
           _autoPlayTriggered = true;
-          _schedulePlay(verse.audioUrlDescription!);
+          if (verse.audioUrlDescription != null) {
+            _schedulePlay(verse.audioUrlDescription!);
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('현재 TTS 서비스를 이용할 수 없습니다'),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            });
+          }
         }
 
         return FadeTransition(
@@ -221,7 +233,7 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
         .split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     final lines = verse.verseText
         .split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-    final verseNumbers = [verse.verse, verse.verseEnd];
+    final verseNumbers = List.generate(lines.length, (i) => verse.verse + i);
     final dateStr = 'Today · ${_dateLongString()}';
 
     return PopScope(
@@ -344,7 +356,7 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        '${verse.book} ${verse.chapter}장',
+                                        '${verse.book} ${verse.chapter}',
                                         style: GoogleFonts.nanumMyeongjo(
                                           fontSize: 42, fontWeight: FontWeight.w800,
                                           height: 1.1, color: context.tvTextHi,

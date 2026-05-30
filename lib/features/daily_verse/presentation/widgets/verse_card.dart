@@ -15,7 +15,7 @@ class VersePage extends StatelessWidget {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-    final verseNumbers = [verse.verse, verse.verseEnd];
+    final verseNumbers = List.generate(lines.length, (i) => verse.verse + i);
 
     return Container(
       color: context.tvPaper,
@@ -40,7 +40,7 @@ class VersePage extends StatelessWidget {
 
             // H1: reference — NanumMyeongjo 42px ExtraBold
             Text(
-              '${verse.book} ${verse.chapter}장',
+              '${verse.book} ${verse.chapter}',
               style: GoogleFonts.nanumMyeongjo(
                 fontSize: 42,
                 fontWeight: FontWeight.w800,
