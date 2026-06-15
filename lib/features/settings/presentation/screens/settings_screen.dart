@@ -16,6 +16,7 @@ class SettingsScreen extends ConsumerWidget {
     final isTtsEnabled = ref.watch(settingsProvider);
     final ttsVolume = ref.watch(ttsVolumeProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final notificationHour = ref.watch(notificationHourProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -94,6 +95,14 @@ class SettingsScreen extends ConsumerWidget {
                         }
                       },
                     ),
+                  ]),
+
+                  const SizedBox(height: 4),
+
+                  // ── 알림 · Notification ───────────────────
+                  _SectionHeader(label: '알림 · Notification'),
+                  _SettingsGroup(children: [
+                    _NotificationTimePicker(current: notificationHour),
                   ]),
 
                   const SizedBox(height: 4),
@@ -383,6 +392,57 @@ class _ThemePicker extends ConsumerWidget {
                       o.label,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontSize: 12,
+                        color: active ? context.tvGold : context.tvTextMid,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ── Notification time picker ──────────────────────────────────
+class _NotificationTimePicker extends ConsumerWidget {
+  final int current;
+  const _NotificationTimePicker({required this.current});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    const hours = [7, 9, 10, 11];
+
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: hours.map((h) {
+          final active = current == h;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => ref.read(notificationHourProvider.notifier).setHour(h),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: active ? context.tvGoldBg : Colors.transparent,
+                  border: Border.all(
+                    color: active ? context.tvGold : context.tvLine,
+                    width: active ? 1.5 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${h}시',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 13,
                         color: active ? context.tvGold : context.tvTextMid,
                         fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                         letterSpacing: 0.2,

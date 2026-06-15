@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 const _keyTtsEnabled = 'tts_enabled';
 const _keyTtsVolume = 'tts_volume';
 const _keyThemeMode = 'theme_mode';
+const _keyNotificationHour = 'notification_hour';
 
 class SettingsNotifier extends Notifier<bool> {
   @override
@@ -86,4 +88,41 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
   ThemeModeNotifier.new,
+);
+
+class NotificationHourNotifier extends Notifier<int> {
+  static const _defaultHour = 10;
+
+  @override
+  int build() {
+    _init();
+    return _defaultHour;
+  }
+
+  Future<void> _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt(_keyNotificationHour);
+    if (saved == null) {
+      // 업데이트 후 최초 실행 — 기존 daily_verse 토픽 해제 및 기본값 구독
+      await FirebaseMessaging.instance.unsubscribeFromTopic('daily_verse');
+      await FirebaseMessaging.instance.subscribeToTopic('daily_verse_$_defaultHour');
+      await prefs.setInt(_keyNotificationHour, _defaultHour);
+      state = _defaultHour;
+    } else {
+      state = saved;
+    }
+  }
+
+  Future<void> setHour(int hour) async {
+    final prefs = await SharedPreferences.getInstance();
+    final old = prefs.getInt(_keyNotificationHour) ?? _defaultHour;
+    await FirebaseMessaging.instance.unsubscribeFromTopic('daily_verse_$old');
+    await FirebaseMessaging.instance.subscribeToTopic('daily_verse_$hour');
+    await prefs.setInt(_keyNotificationHour, hour);
+    state = hour;
+  }
+}
+
+final notificationHourProvider = NotifierProvider<NotificationHourNotifier, int>(
+  NotificationHourNotifier.new,
 );

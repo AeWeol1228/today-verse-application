@@ -137,7 +137,13 @@ function buildGeminiPrompt(book: string, chapter: number, verse: number, verseEn
 
 두 가지를 작성해줘:
 1. verse_text_tts: 위 구절을 TTS로 자연스럽게 읽도록 쉼표, 마침표, 줄바꿈 등을 적절히 추가해. 단어와 내용은 절대 변경하지 마.
-2. book_description: ${book}에 대한 설명을 1. 쓰인 목적, 2. 저자의 상황, 3. 핵심 메시지 중 1~3개를 골라 한 글로 3~4문장으로 작성해. 줄바꿈을 활용해서 가독성을 좋게 해줘.
+2. book_description: ${book}을 3~4문장으로 소개해줘. 1. 쓰인 목적, 2. 저자의 상황, 3. 핵심 메시지 중 1~3개를 골라 담되, 아래 문체 규칙을 반드시 지켜.
+   - 문장은 짧고 명확하게. 한 문장에 하나의 생각만 담아.
+   - "~하며"로 절을 길게 연결하지 마. 대신 문장을 끊어.
+   - "핵심 메시지는 ~입니다" 패턴은 쓰지 마.
+   - 강의·보고서 투가 아니라, 옆에서 조용히 말해주는 것처럼 써.
+   - 신학 용어보다 일상 언어를 써. 꼭 써야 한다면 바로 풀어서 설명해.
+   - TTS로 낭독되는 글이야. 귀로 들었을 때 자연스럽게 흘러야 해.
 `.trim();
 }
 
@@ -171,7 +177,14 @@ function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16):
   return Buffer.concat([header, pcm]);
 }
 
-async function generateSingleAudio(apiKey: string, text: string, filename: string, stylePrompt: string): Promise<string | undefined> {
+const TTS_VOICES = ["Gacrux", "Aoede", "Sulafat"] as const;
+const TTS_ACCENTS = ["서울", "경상도", "충청도", "전라도", "강원도"] as const;
+
+function pickRandom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+async function generateSingleAudio(apiKey: string, text: string, filename: string, stylePrompt: string, voiceName: string): Promise<string | undefined> {
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `${stylePrompt}\n\n${text}`;
 
@@ -183,7 +196,7 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
         responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: "Gacrux" },
+            prebuiltVoiceConfig: { voiceName },
           },
         },
       },
@@ -226,17 +239,20 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
   return undefined;
 }
 
-const STYLE_VERSE =
-  '자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요. 보통 속도로 읽어주세요.';
+const STYLE_VERSE = '자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요. 보통 속도로 읽어주세요.';
 
-const STYLE_DESCRIPTION =
-  '자연스럽고 따뜻하게 읽어주세요. 속도는 아주 빠르게 읽어주세요. 문장이 끝날 때마다 충분히 쉬어가며 읽어주세요.';
+function buildStyleDescription(accent: string): string {
+  return `자연스럽고 따뜻하게 읽어주세요. 글의 리듬감을 살려서 읽어주세요. 문장이 끝날 때마다 충분히 쉬어가며 읽어주세요. ${accent} 억양으로 읽어주세요.`;
+}
 
 async function generateAudio(apiKey: string, verseTts: string, bookDescription: string, today: string): Promise<{ audioUrlVerse?: string; audioUrlDescription?: string }> {
   const ts = Date.now();
+  const voice = pickRandom(TTS_VOICES);
+  const accent = pickRandom(TTS_ACCENTS);
+  console.log(`TTS 설정 — 보이스: ${voice}, 억양: ${accent}`);
   const [audioUrlVerse, audioUrlDescription] = await Promise.all([
-    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`, STYLE_VERSE),
-    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`, STYLE_DESCRIPTION),
+    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`, STYLE_VERSE, voice),
+    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`, buildStyleDescription(accent), voice),
   ]);
   return { audioUrlVerse, audioUrlDescription };
 }
@@ -258,7 +274,7 @@ async function generateForDate(apiKey: string, date: string): Promise<void> {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.5-flash",
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -364,29 +380,43 @@ export const fillBuffer = onSchedule(
 );
 
 // 오전 10시 — FCM 발송만
-export const sendDailyVerse = onSchedule(
-  {
-    schedule: "0 10 * * *",
-    timeZone: "Asia/Seoul",
-    timeoutSeconds: 60,
-  },
-  async () => {
-    const today = dateKey(0);
-    const doc = await admin.firestore().collection("daily_verses").doc(today).get();
-    if (!doc.exists) {
-      console.error(`오늘(${today}) 문서 없음 — 버퍼 소진`);
-      return;
-    }
-    await admin.messaging().send({
-      topic: "daily_verse",
-      notification: {
-        title: "오늘의 구절이 도착했습니다",
-        body: "앱을 열어 오늘의 말씀을 확인하세요",
-      },
-      data: { type: "daily_verse", date: today },
-    });
-    console.log(`FCM 발송 완료: ${today}`);
+async function sendDailyVerseToTopic(hour: number): Promise<void> {
+  const today = dateKey(0);
+  const doc = await admin.firestore().collection("daily_verses").doc(today).get();
+  if (!doc.exists) {
+    console.error(`오늘(${today}) 문서 없음 — 버퍼 소진`);
+    return;
   }
+  const topic = `daily_verse_${hour}`;
+  await admin.messaging().send({
+    topic,
+    notification: {
+      title: "오늘의 구절이 도착했습니다",
+      body: "앱을 열어 오늘의 말씀을 확인하세요",
+    },
+    data: { type: "daily_verse", date: today },
+  });
+  console.log(`FCM 발송 완료: ${today} → ${topic}`);
+}
+
+export const sendDailyVerse7 = onSchedule(
+  { schedule: "0 7 * * *", timeZone: "Asia/Seoul", timeoutSeconds: 60 },
+  async () => sendDailyVerseToTopic(7)
+);
+
+export const sendDailyVerse9 = onSchedule(
+  { schedule: "0 9 * * *", timeZone: "Asia/Seoul", timeoutSeconds: 60 },
+  async () => sendDailyVerseToTopic(9)
+);
+
+export const sendDailyVerse10 = onSchedule(
+  { schedule: "0 10 * * *", timeZone: "Asia/Seoul", timeoutSeconds: 60 },
+  async () => sendDailyVerseToTopic(10)
+);
+
+export const sendDailyVerse11 = onSchedule(
+  { schedule: "0 11 * * *", timeZone: "Asia/Seoul", timeoutSeconds: 60 },
+  async () => sendDailyVerseToTopic(11)
 );
 
 export const stopBilling = onMessagePublished(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/verse.dart';
 
@@ -181,6 +182,44 @@ class VersePage extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 구글 AI 탐색 버튼
+            GestureDetector(
+              onTap: () {
+                final query = Uri.encodeComponent(
+                  '${verse.book} ${verse.chapter}:${verse.verse}-${verse.verseEnd} 구절 보여주고 무엇이 궁금한지 물어봐줘. 실제 구절을 보여줘.',
+                );
+                launchUrl(
+                  Uri.parse('https://www.google.com/search?q=$query&udm=50'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  border: Border.all(color: context.tvGoldSoft),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '이 구절에 대해 알아보러 가기',
+                      style: GoogleFonts.notoSansKr(
+                        fontSize: 13,
+                        color: context.tvGold,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(Icons.open_in_new_rounded, size: 14, color: context.tvGold),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),

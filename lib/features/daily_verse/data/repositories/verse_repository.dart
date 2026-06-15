@@ -4,10 +4,17 @@ import '../models/verse_model.dart';
 class VerseRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // 6시 이전이면 전날을 "오늘"로 취급
+  DateTime _effectiveToday() {
+    final now = DateTime.now();
+    return now.hour < 6 ? now.subtract(const Duration(days: 1)) : now;
+  }
+
   Future<VerseModel?> getTodayVerse() async {
+    final effective = _effectiveToday();
     final todayDoc = await _firestore
         .collection('daily_verses')
-        .doc(_dateKey(DateTime.now()))
+        .doc(_dateKey(effective))
         .get();
     if (todayDoc.exists && todayDoc.data() != null) {
       return VerseModel.fromFirestore(todayDoc.data()!);
@@ -15,7 +22,7 @@ class VerseRepository {
 
     final yesterdayDoc = await _firestore
         .collection('daily_verses')
-        .doc(_dateKey(DateTime.now().subtract(const Duration(days: 1))))
+        .doc(_dateKey(effective.subtract(const Duration(days: 1))))
         .get();
     if (!yesterdayDoc.exists || yesterdayDoc.data() == null) return null;
     return VerseModel.fromFirestore(yesterdayDoc.data()!);
@@ -25,7 +32,7 @@ class VerseRepository {
     final snap = await _firestore
         .collection('daily_verses')
         .get();
-    final today = _dateKey(DateTime.now());
+    final today = _dateKey(_effectiveToday());
     final result = <VerseModel>[];
     for (final d in snap.docs) {
       if (d.id.compareTo(today) > 0) continue;

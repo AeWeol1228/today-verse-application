@@ -98,7 +98,7 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
   }
 
   void _schedulePlay(String audioUrl) {
-    Future.delayed(const Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
       ref.read(verseAudioProvider.notifier)
         ..setVolume(ref.read(ttsVolumeProvider))
@@ -145,7 +145,8 @@ class _DailyVerseScreenState extends ConsumerState<DailyVerseScreen>
     );
     if (confirmed == true && mounted) {
       await FirebaseMessaging.instance.requestPermission();
-      await FirebaseMessaging.instance.subscribeToTopic('daily_verse');
+      final hour = ref.read(notificationHourProvider);
+      await FirebaseMessaging.instance.subscribeToTopic('daily_verse_$hour');
     }
   }
 

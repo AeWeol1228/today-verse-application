@@ -1,13 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio/just_audio.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_symbol.dart';
 import '../../../../features/settings/presentation/screens/settings_screen.dart';
 import 'daily_verse_screen.dart';
 import 'history_screen.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
+  final AudioPlayer _introPlayer = AudioPlayer();
+  bool _wasInBackground = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _playIntro();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _introPlayer.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _wasInBackground = true;
+    } else if (state == AppLifecycleState.resumed && _wasInBackground) {
+      _wasInBackground = false;
+      _playIntro();
+    }
+  }
+
+  Future<void> _playIntro() async {
+    try {
+      await _introPlayer.setAsset('assets/main.mp3');
+      await _introPlayer.play();
+    } catch (_) {}
+  }
 
   static bool _isFold(BuildContext context) =>
       MediaQuery.of(context).size.shortestSide > 600;
