@@ -178,7 +178,7 @@ function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitDepth = 16):
 }
 
 const TTS_VOICES = ["Gacrux", "Aoede", "Sulafat"] as const;
-const TTS_ACCENTS = ["서울", "경상도", "충청도", "전라도", "강원도"] as const;
+const TTS_ACCENTS = ["경기도", "충청도", "전라도", "경상도", "강원도", "황해도", "평안도", "함경도"] as const;
 
 function pickRandom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -239,8 +239,6 @@ async function generateSingleAudio(apiKey: string, text: string, filename: strin
   return undefined;
 }
 
-const STYLE_VERSE = '자연스럽고 따뜻하게, 일상 대화처럼 읽어주세요. 보통 속도로 읽어주세요.';
-
 function buildStyleDescription(accent: string): string {
   return `자연스럽고 따뜻하게 읽어주세요. 글의 리듬감을 살려서 읽어주세요. 문장이 끝날 때마다 충분히 쉬어가며 읽어주세요. ${accent} 억양으로 읽어주세요.`;
 }
@@ -249,10 +247,11 @@ async function generateAudio(apiKey: string, verseTts: string, bookDescription: 
   const ts = Date.now();
   const voice = pickRandom(TTS_VOICES);
   const accent = pickRandom(TTS_ACCENTS);
+  const style = buildStyleDescription(accent);
   console.log(`TTS 설정 — 보이스: ${voice}, 억양: ${accent}`);
   const [audioUrlVerse, audioUrlDescription] = await Promise.all([
-    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`, STYLE_VERSE, voice),
-    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`, buildStyleDescription(accent), voice),
+    generateSingleAudio(apiKey, verseTts, `${today}_${ts}_verse`, style, voice),
+    generateSingleAudio(apiKey, bookDescription, `${today}_${ts}_desc`, style, voice),
   ]);
   return { audioUrlVerse, audioUrlDescription };
 }
@@ -260,6 +259,12 @@ async function generateAudio(apiKey: string, verseTts: string, bookDescription: 
 function dateKey(daysAhead = 0): string {
   const d = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(d);
+}
+
+function isSunday(daysAhead = 0): boolean {
+  const d = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" }).format(d);
+  return weekday === "Sun";
 }
 
 async function generateForDate(apiKey: string, date: string): Promise<void> {
@@ -354,6 +359,10 @@ export const fillBuffer = onSchedule(
 
     for (let i = 0; i < 5; i++) {
       const date = dateKey(i);
+      if (isSunday(i)) {
+        console.log(`${date}: 일요일, 생성 스킵`);
+        continue;
+      }
       try {
         const docSnap = await admin.firestore().collection("daily_verses").doc(date).get();
         const data = docSnap.data();
@@ -381,6 +390,10 @@ export const fillBuffer = onSchedule(
 
 // 오전 10시 — FCM 발송만
 async function sendDailyVerseToTopic(hour: number): Promise<void> {
+  if (isSunday(0)) {
+    console.log(`일요일 — FCM 발송 스킵 (${hour}시)`);
+    return;
+  }
   const today = dateKey(0);
   const doc = await admin.firestore().collection("daily_verses").doc(today).get();
   if (!doc.exists) {
